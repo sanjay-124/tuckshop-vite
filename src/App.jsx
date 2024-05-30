@@ -76,16 +76,16 @@ function App() {
         <h1 className="text-6xl font-bold text-[#11b682]">TUCKSHOP IS HERE</h1>
         <p className="mt-4 text-2xl font-extrabold text-black">The new arrivals have, well, newly arrived. Check out the latest options from our tuckshop while they're still in stock.</p>
         <button className="bg-[#11b682] text-white mt-6 py-2 px-4 rounded-lg" onClick={handleShopNowClick}>Shop Now</button>
-      </div>
-      <button 
-        className="absolute top-2 right-4 text-gray-900" 
+        <button 
+        className="bg-[#11b682] text-white mt-6 py-2 px-4 rounded-lg" 
         onClick={handleCreateAccountClick}
         style={{ zIndex: 2 }}
       >
         Create an Account
       </button>
+      </div>
       {isFormVisible && (
-        <div className="absolute right-2 top-16 bg-white p-6 rounded shadow-lg w-80" style={{ zIndex: 3 }}>
+        <div className="absolute inset-0 bg-white bg-opacity-95 flex items-center justify-center" style={{ zIndex: 3 }}>
           <button 
             className="absolute top-2 right-2 text-gray-900" 
             onClick={() => setFormVisible(false)}
@@ -191,7 +191,7 @@ function App() {
       <img 
         src="./patch.png"  
         alt="Patch" 
-        className="absolute bottom-0 left-0 max-w-[40%] h-auto z-0"
+        className="absolute bottom-0 left-0 max-w-[100%] h-auto z-0"
       />
     </div>
   );
