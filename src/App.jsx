@@ -6,7 +6,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const boarderEmails = [
-  'president@gmail.com',  
+  'president@gmail.com',
   'mrsanjay2709@gmail.com'
 ];
 
@@ -64,135 +64,63 @@ function App() {
   };
 
   return (
-    <div 
-      className="relative bg-cover bg-center bg-no-repeat w-full h-screen" 
-      style={{ backgroundImage: "url('./bg.jpg')", zIndex: 1 }}
-    >
+    <div className="relative bg-cover bg-center bg-no-repeat w-full min-h-screen" style={{ backgroundImage: "url('./bg.jpg')" }}>
       <ToastContainer />
-      <div className="absolute top-10 w-full bg-[#7E7F80] h-[60px] flex items-center justify-center" style={{ zIndex: 2 }}>
+      <div className="absolute top-10 w-full bg-[#7E7F80] h-[60px] flex items-center justify-center">
         <p className="italic text-white text-2xl text-center">Managed by Boarding, Canadian International School</p>
       </div>
-      <div className="relative mx-auto flex max-w-3xl flex-col items-center py-32 px-6 text-center sm:py-64 lg:px-0" style={{ zIndex: 2 }}>
-        <h1 className="text-6xl font-bold text-[#11b682]">TUCKSHOP IS HERE</h1>
-        <p className="mt-4 text-2xl font-extrabold text-black">The new arrivals have, well, newly arrived. Check out the latest options from our tuckshop while they're still in stock.</p>
-        <button className="bg-[#11b682] text-white mt-6 py-2 px-4 rounded-lg" onClick={handleShopNowClick}>Shop Now</button>
-      </div>
-      <button 
-        className="absolute top-2 right-4 text-gray-900" 
-        onClick={handleCreateAccountClick}
-        style={{ zIndex: 2 }}
-      >
-        Create an Account
-      </button>
-      {isFormVisible && (
-        <div className="absolute right-2 top-16 bg-white p-6 rounded shadow-lg w-80" style={{ zIndex: 3 }}>
-          <button 
-            className="absolute top-2 right-2 text-gray-900" 
-            onClick={() => setFormVisible(false)}
-          >
-            &times;
-          </button>
-          <form onSubmit={handleFormSubmit}>
-            <div className="mb-4">
-              <label htmlFor="name" className="block text-gray-700">Name:</label>
-              <input 
-                type="text" 
-                id="name" 
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
-                className="border border-gray-300 p-2 rounded w-full" 
-                required 
-              />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="email" className="block text-gray-700">Email:</label>
-              <input 
-                type="email" 
-                id="email" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-                className="border border-gray-300 p-2 rounded w-full" 
-                required 
-              />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="password" className="block text-gray-700">Password:</label>
-              <input 
-                type="password" 
-                id="password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                className="border border-gray-300 p-2 rounded w-full" 
-                required 
-              />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="confirmPassword" className="block text-gray-700">Confirm Password:</label>
-              <input 
-                type="password" 
-                id="confirmPassword" 
-                value={confirmPassword} 
-                onChange={(e) => setConfirmPassword(e.target.value)} 
-                className="border border-gray-300 p-2 rounded w-full" 
-                required 
-              />
-            </div>
-            <button 
-              type="submit" 
-              className="bg-[#11b682] text-white py-2 px-4 rounded-lg w-full"
-            >
-              Sign Up
-            </button>
-          </form>
+      <div className="relative mx-auto flex flex-col items-center py-10 px-6 text-center sm:py-20">
+        <h1 className="text-4xl font-bold text-[#11b682] mb-4">TUCKSHOP IS HERE</h1>
+        <p className="text-lg font-extrabold text-black mb-4">The new arrivals have, well, newly arrived. Check out the latest options from our tuckshop while they're still in stock.</p>
+        <div className="flex flex-col sm:flex-row">
+          <button className="bg-[#11b682] text-white py-2 px-4 rounded-lg mb-4 sm:mb-0 sm:mr-4" onClick={handleShopNowClick}>Shop Now</button>
+          <button className="bg-[#11b682] text-white py-2 px-4 rounded-lg" onClick={handleCreateAccountClick}>Create an Account</button>
         </div>
-      )}
-      {isModalVisible && (
-        <div className="absolute inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center" style={{ zIndex: 3 }}>
+      </div>
+      {isFormVisible && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center">
           <div className="bg-white p-6 rounded shadow-lg w-80 relative">
-            <button 
-              className="absolute top-2 right-2 text-gray-900" 
-              onClick={() => setModalVisible(false)}
-            >
-              &times;
-            </button>
-            <form onSubmit={handleModalSubmit}>
+            <button className="absolute top-2 right-2 text-gray-900" onClick={() => setFormVisible(false)}>&times;</button>
+            <form onSubmit={handleFormSubmit}>
+              <div className="mb-4">
+                <label htmlFor="name" className="block text-gray-700">Name:</label>
+                <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} className="border border-gray-300 p-2 rounded w-full" required />
+              </div>
               <div className="mb-4">
                 <label htmlFor="email" className="block text-gray-700">Email:</label>
-                <input 
-                  type="email" 
-                  id="email" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                  className="border border-gray-300 p-2 rounded w-full" 
-                  required 
-                />
+                <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className="border border-gray-300 p-2 rounded w-full" required />
               </div>
               <div className="mb-4">
                 <label htmlFor="password" className="block text-gray-700">Password:</label>
-                <input 
-                  type="password" 
-                  id="password" 
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)} 
-                  className="border border-gray-300 p-2 rounded w-full" 
-                  required 
-                />
+                <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} className="border border-gray-300 p-2 rounded w-full" required />
               </div>
-              <button 
-                type="submit" 
-                className="bg-[#11b682] text-white py-2 px-4 rounded-lg w-full"
-              >
-                Log In
-              </button>
+              <div className="mb-4">
+                <label htmlFor="confirmPassword" className="block text-gray-700">Confirm Password:</label>
+                <input type="password" id="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="border border-gray-300 p-2 rounded w-full" required />
+              </div>
+              <button type="submit" className="bg-[#11b682] text-white py-2 px-4 rounded-lg w-full">Sign Up</button>
             </form>
           </div>
         </div>
       )}
-      <img 
-        src="./patch.png"  
-        alt="Patch" 
-        className="absolute bottom-0 left-0 patch-image"
-      />
+      {isModalVisible && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center">
+          <div className="bg-white p-6 rounded shadow-lg w-80 relative">
+            <button className="absolute top-2 right-2 text-gray-900" onClick={() => setModalVisible(false)}>&times;</button>
+            <form onSubmit={handleModalSubmit}>
+              <div className="mb-4">
+                <label htmlFor="email" className="block text-gray-700">Email:</label>
+                <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} className="border border-gray-300 p-2 rounded w-full" required />
+              </div>
+              <div className="mb-4">
+                <label htmlFor="password" className="block text-gray-700">Password:</label>
+                <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} className="border border-gray-300 p-2 rounded w-full" required />
+              </div>
+              <button type="submit" className="bg-[#11b682] text-white py-2 px-4 rounded-lg w-full">Log In</button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
