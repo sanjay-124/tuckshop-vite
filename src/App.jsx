@@ -66,7 +66,7 @@ function App() {
   return (
     <div 
       className="relative bg-cover bg-center bg-no-repeat w-full h-screen" 
-      style={{ backgroundImage: "url('/images/bg.jpg')", zIndex: 1 }}
+      style={{ backgroundImage: "url('./bg.jpg')", zIndex: 1 }}
     >
       <ToastContainer />
       <div className="absolute top-10 w-full bg-[#7E7F80] h-[60px] flex items-center justify-center" style={{ zIndex: 2 }}>
@@ -75,7 +75,7 @@ function App() {
       <div className="relative mx-auto flex max-w-3xl flex-col items-center py-32 px-6 text-center sm:py-64 lg:px-0" style={{ zIndex: 2 }}>
         <h1 className="text-6xl font-bold text-[#11b682]">TUCKSHOP IS HERE</h1>
         <p className="mt-4 text-2xl font-extrabold text-black">The new arrivals have, well, newly arrived. Check out the latest options from our tuckshop while they're still in stock.</p>
-        <button className="bg-[#11b682] text-white py-2 px-4 rounded-lg" onClick={handleShopNowClick}>Shop Now</button>
+        <button className="bg-[#11b682] text-white mt-6 py-2 px-4 rounded-lg" onClick={handleShopNowClick}>Shop Now</button>
       </div>
       <button 
         className="absolute top-2 right-4 text-gray-900" 
@@ -189,7 +189,7 @@ function App() {
         </div>
       )}
       <img 
-        src="/images/patch.png"  
+        src="./patch.png"  
         alt="Patch" 
         className="absolute bottom-0 left-0 patch-image"
       />
