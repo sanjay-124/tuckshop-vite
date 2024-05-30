@@ -65,16 +65,8 @@ function App() {
 
   return (
     <div 
-      className="relative" 
-      style={{ 
-        backgroundImage: "url('/images/bg.jpg')", 
-        backgroundSize: 'cover', 
-        backgroundPosition: 'center', 
-        backgroundRepeat: 'no-repeat', 
-        width: '100%', 
-        height: '100vh', 
-        zIndex: 1 
-      }}
+      className="relative bg-cover bg-center bg-no-repeat w-full h-screen" 
+      style={{ backgroundImage: "url('/images/bg.jpg')", zIndex: 1 }}
     >
       <ToastContainer />
       <div className="absolute top-10 w-full bg-[#7E7F80] h-[60px] flex items-center justify-center" style={{ zIndex: 2 }}>
@@ -199,7 +191,7 @@ function App() {
       <img 
         src="/images/patch.png"  
         alt="Patch" 
-        className="absolute bottom-0 left-0 w-fit h-full patch-image"
+        className="absolute bottom-0 left-0 patch-image"
       />
     </div>
   );

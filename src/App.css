@@ -39,3 +39,20 @@
   color: #888;
 }
 
+.bg-cover {
+  background-size: cover;
+}
+
+.bg-center {
+  background-position: center;
+}
+
+.bg-no-repeat {
+  background-repeat: no-repeat;
+}
+
+.patch-image {
+max-width: 40%;
+  height: fit-content;
+  z-index: 0;
+}
