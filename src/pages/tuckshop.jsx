@@ -55,7 +55,7 @@ const Tuckshop = () => {
   const handleDecreaseQuantity = (item) => {
     const currentQuantity = quantities[item.id] || 1;
     const newQuantity = currentQuantity - 1;
-  
+
     if (newQuantity > 0) {
       // Update quantity if greater than 0
       setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
@@ -88,57 +88,120 @@ const Tuckshop = () => {
       <Header />
       <div className="mb-4">
         {user ? (
-          <h1 className="text-xl pt-2 font-light">Welcome {user.displayName}</h1>
+          <h1 className="text-xl pt-2 font-light">
+            Welcome {user.displayName}
+          </h1>
         ) : (
           <p>Please log in to see your details.</p>
         )}
       </div>
       <div className="flex">
-        <div className="w-1/4 mr-4 border-r border-gray-300 pr-4">
-          <button onClick={() => handleSort("all")} className="block mb-2">All</button>
-          <button onClick={() => handleSort("beverages")} className="block mb-2">Beverages</button>
-          <button onClick={() => handleSort("ice cream")} className="block mb-2">Ice Cream</button>
-          <button onClick={() => handleSort("chocolates")} className="block mb-2">Chocolates</button>
-          <button onClick={() => handleSort("snacks")} className="block mb-2">Snacks</button>
-          <button onClick={() => handleSort("others")} className="block mb-2">Others</button>
+        <div className="w-1/3 mr-2 text-sm border-r border-gray-300 pr-4 flex flex-col items-center space-y-2">
+          <button
+            onClick={() => handleSort("all")}
+            className="w-24 h-24 flex items-center justify-center bg-gray-200 rounded-md"
+          >
+            All
+          </button>
+          <button
+            onClick={() => handleSort("beverages")}
+            className="w-24 h-24 flex flex-col items-center justify-center bg-gray-200 rounded-md"
+          >
+            <img
+              src="/images/beverages.avif"
+              alt="Beverages"
+              className="w-12 h-12 mb-1"
+            />
+            Beverages
+          </button>
+          <button
+            onClick={() => handleSort("ice cream")}
+            className="w-24 h-24 flex flex-col items-center justify-center bg-gray-200 rounded-md"
+          >
+            <img
+              src="/images/icecreams.avif"
+              alt="Ice Cream"
+              className="w-12 h-12 mb-1"
+            />
+            Ice Cream
+          </button>
+          <button
+            onClick={() => handleSort("chocolates")}
+            className="w-24 h-24 flex flex-col items-center justify-center bg-gray-200 rounded-md"
+          >
+            <img
+              src="/images/chocolates.avif"
+              alt="Chocolates"
+              className="w-12 h-12 mb-1"
+            />
+            Chocolates
+          </button>
+          <button
+            onClick={() => handleSort("snacks")}
+            className="w-24 h-24 flex flex-col items-center justify-center bg-gray-200 rounded-md"
+          >
+            <img
+              src="/images/snacks.avif"
+              alt="Snacks"
+              className="w-12 h-12 mb-1"
+            />
+            Snacks
+          </button>
+          <button
+            onClick={() => handleSort("others")}
+            className="w-24 h-24 flex items-center justify-center bg-gray-200 rounded-md"
+          >
+            Others
+          </button>
         </div>
-        <div className="w-3/4 flex flex-col">
+        <div className="w-2/3 flex flex-col">
           <div className="grid grid-cols-2 gap-1 flex-grow">
             {sortedItems.map((item) => (
-              <div key={item.id} className="border rounded p-4 flex flex-col items-start">
+              <div
+                key={item.id}
+                className="border rounded p-2 flex flex-col items-start"
+              >
                 <div>
-                <img src={`images/${item.image}`} alt={item.name} className="w-full h-full object-cover" />
+                  <img
+                    src={`images/${item.image}`}
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <h3 className="text-md font-medium">{item.name}</h3>
                 <p>Stock: {item.stock}</p>
                 <div className="flex items-center justify-between w-full mt-2">
-                  <span className="text-lg font-bold text-gray-700">{item.price}</span>
+                  <span className="text-lg font-bold text-gray-700">
+                    {item.price}
+                  </span>
                   {addedItems[item.id] ? (
-      <div className="flex border rounded-sm items-center space-x-2">
-        <button
-          className="font-extrabold text-black rounded-full px-2 py-1"
-          onClick={() => handleDecreaseQuantity(item)}
-        >
-          -
-        </button>
-        <span className="text-lg font-bold">{quantities[item.id]}</span>
-        <button
-          className="font-extrabold text-black rounded-full px-2 py-1"
-          onClick={() => handleIncreaseQuantity(item)}
-        >
-          +
-        </button>
-      </div>
-    ) : (
-      <button
-        className="bg-gray-200 text-black rounded-md px-2 py-1"
-        onClick={() => handleAddToCart(item)}
-      >
-        Add
-      </button>
-    )}
-  </div>
-</div>
+                    <div className="flex border rounded-sm items-center space-x-2">
+                      <button
+                        className="font-extrabold text-black rounded-full px-2 py-1"
+                        onClick={() => handleDecreaseQuantity(item)}
+                      >
+                        -
+                      </button>
+                      <span className="text-lg font-bold">
+                        {quantities[item.id]}
+                      </span>
+                      <button
+                        className="font-extrabold text-black rounded-full px-2 py-1"
+                        onClick={() => handleIncreaseQuantity(item)}
+                      >
+                        +
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="bg-gray-200 text-black rounded-md px-2 py-1"
+                      onClick={() => handleAddToCart(item)}
+                    >
+                      Add
+                    </button>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
           <div className="mt-4 flex">
@@ -146,7 +209,8 @@ const Tuckshop = () => {
               className="bg-green-500 font-semibold text-white rounded-md py-2 px-6 hover:bg-green-600 focus:outline-none transition-all duration-300"
               onClick={() => navigate("/checkout")}
             >
-              Go to Cart ({cart.reduce((total, item) => total + item.quantity, 0)})
+              Go to Cart (
+              {cart.reduce((total, item) => total + item.quantity, 0)})
             </button>
           </div>
         </div>
