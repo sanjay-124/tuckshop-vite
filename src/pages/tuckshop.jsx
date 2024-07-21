@@ -84,7 +84,7 @@ const Tuckshop = () => {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-1">
       <Header />
       <div className="mb-4">
         {user ? (
@@ -96,16 +96,16 @@ const Tuckshop = () => {
         )}
       </div>
       <div className="flex">
-        <div className="w-1/3 mr-2 text-sm border-r border-gray-300 pr-4 flex flex-col items-center space-y-2">
+        <div className="w-1/4 mr-1 text-sm border-r border-gray-300 pr-1 flex flex-col items-center space-y-2">
           <button
             onClick={() => handleSort("all")}
-            className="w-24 h-24 flex items-center justify-center bg-gray-200 rounded-md"
+            className="w-20 h-20 flex items-center justify-center bg-gray-200 rounded-md"
           >
             All
           </button>
           <button
             onClick={() => handleSort("beverages")}
-            className="w-24 h-24 flex flex-col items-center justify-center bg-gray-200 rounded-md"
+            className="w-20 h-20 flex flex-col items-center justify-center bg-gray-200 rounded-md"
           >
             <img
               src="/images/beverages.avif"
@@ -116,7 +116,7 @@ const Tuckshop = () => {
           </button>
           <button
             onClick={() => handleSort("ice cream")}
-            className="w-24 h-24 flex flex-col items-center justify-center bg-gray-200 rounded-md"
+            className="w-20 h-20 flex flex-col items-center justify-center bg-gray-200 rounded-md"
           >
             <img
               src="/images/icecreams.avif"
@@ -127,7 +127,7 @@ const Tuckshop = () => {
           </button>
           <button
             onClick={() => handleSort("chocolates")}
-            className="w-24 h-24 flex flex-col items-center justify-center bg-gray-200 rounded-md"
+            className="w-20 h-20 flex flex-col items-center justify-center bg-gray-200 rounded-md"
           >
             <img
               src="/images/chocolates.avif"
@@ -138,7 +138,7 @@ const Tuckshop = () => {
           </button>
           <button
             onClick={() => handleSort("snacks")}
-            className="w-24 h-24 flex flex-col items-center justify-center bg-gray-200 rounded-md"
+            className="w-20 h-20 flex flex-col items-center justify-center bg-gray-200 rounded-md"
           >
             <img
               src="/images/snacks.avif"
@@ -149,12 +149,12 @@ const Tuckshop = () => {
           </button>
           <button
             onClick={() => handleSort("others")}
-            className="w-24 h-24 flex items-center justify-center bg-gray-200 rounded-md"
+            className="w-20 h-20 flex items-center justify-center bg-gray-200 rounded-md"
           >
             Others
           </button>
         </div>
-        <div className="w-2/3 flex flex-col">
+        <div className="w-3/4 flex flex-col">
           <div className="grid grid-cols-2 gap-1 flex-grow">
             {sortedItems.map((item) => (
               <div
