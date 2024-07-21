@@ -2,9 +2,7 @@ import React, { createContext, useContext, useState } from "react";
 
 const CartContext = createContext();
 
-export const useCart = () => {
-  return useContext(CartContext);
-};
+export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
@@ -24,12 +22,26 @@ export const CartProvider = ({ children }) => {
     });
   };
 
+  const updateCartItemQuantity = (itemId, quantity) => {
+    setCart((prevCart) =>
+      prevCart.map((item) =>
+        item.id === itemId ? { ...item, quantity } : item
+      )
+    );
+  };
+
+  const removeFromCart = (itemId) => {
+    setCart((prevCart) => prevCart.filter((item) => item.id !== itemId));
+  };
+
   const clearCart = () => {
     setCart([]);
   };
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, clearCart }}>
+    <CartContext.Provider
+      value={{ cart, addToCart, updateCartItemQuantity, removeFromCart, clearCart }}
+    >
       {children}
     </CartContext.Provider>
   );

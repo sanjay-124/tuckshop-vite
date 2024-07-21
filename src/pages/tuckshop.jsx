@@ -8,10 +8,12 @@ import { useNavigate } from "react-router-dom";
 
 const Tuckshop = () => {
   const { user } = useUser();
-  const { cart, addToCart } = useCart();
+  const { cart, addToCart, updateCartItemQuantity } = useCart();
   const [items, setItems] = useState([]);
   const [quantities, setQuantities] = useState({});
   const [addedItems, setAddedItems] = useState({});
+  const [sortedItems, setSortedItems] = useState([]);
+  const [category, setCategory] = useState("all");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,70 +25,131 @@ const Tuckshop = () => {
         ...doc.data(),
       }));
       setItems(itemsData);
+      setSortedItems(itemsData);
     };
     fetchItems();
   }, []);
 
+  useEffect(() => {
+    const cartQuantities = cart.reduce((acc, item) => {
+      acc[item.id] = item.quantity;
+      return acc;
+    }, {});
+    setQuantities(cartQuantities);
+    setAddedItems(cartQuantities);
+  }, [cart]);
+
   const handleAddToCart = (item) => {
     const quantity = quantities[item.id] || 1;
     addToCart({ ...item, quantity });
-    setQuantities((prev) => ({ ...prev, [item.id]: 1 }));
-    
+    setQuantities((prev) => ({ ...prev, [item.id]: quantity }));
     setAddedItems((prev) => ({ ...prev, [item.id]: true }));
-    setTimeout(() => {
-      setAddedItems((prev) => ({ ...prev, [item.id]: false }));
-    }, 2000);
   };
 
-  const handleQuantityChange = (itemId, quantity) => {
-    setQuantities((prev) => ({ ...prev, [itemId]: Number(quantity) }));
+  const handleIncreaseQuantity = (item) => {
+    const newQuantity = (quantities[item.id] || 1) + 1;
+    setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
+    updateCartItemQuantity(item.id, newQuantity);
+  };
+
+  const handleDecreaseQuantity = (item) => {
+    const currentQuantity = quantities[item.id] || 1;
+    const newQuantity = currentQuantity - 1;
+  
+    if (newQuantity > 0) {
+      // Update quantity if greater than 0
+      setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
+      updateCartItemQuantity(item.id, newQuantity);
+    } else {
+      // Remove item from cart if quantity is 0
+      setQuantities((prev) => {
+        const { [item.id]: _, ...rest } = prev;
+        return rest;
+      });
+      setAddedItems((prev) => {
+        const { [item.id]: _, ...rest } = prev;
+        return rest;
+      });
+      updateCartItemQuantity(item.id, 0); // Update quantity to 0 in cart
+    }
+  };
+
+  const handleSort = (category) => {
+    setCategory(category);
+    if (category === "all") {
+      setSortedItems(items);
+    } else {
+      setSortedItems(items.filter((item) => item.category === category));
+    }
   };
 
   return (
-
     <div className="p-4">
-          <Header/>
+      <Header />
       <div className="mb-4">
         {user ? (
-         <h1 className="text-2xl pt-2 font-bold">Welcome {user.displayName}</h1>
+          <h1 className="text-xl pt-2 font-light">Welcome {user.displayName}</h1>
         ) : (
           <p>Please log in to see your details.</p>
         )}
       </div>
-      <h2 className="text-xl font-semibold mb-4">Items Available:</h2>
-      <ul className="list-none p-0">
-        {items.map((item) => (
-          <li key={item.id} className="border rounded p-4 mb-4 flex flex-col items-start">
-            <h3 className="text-lg font-medium">{item.name}</h3>
-            <p>Stock: {item.stock}</p>
-            <p>Price: ${item.price}</p>
-            <input
-              type="number"
-              min="1"
-              value={quantities[item.id] || 1}
-              onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-              className="mt-2 p-2 border rounded w-full"
-            />
-            <button
-              className={`mt-2 px-4 py-2 rounded-full text-white font-semibold transition-all duration-300 ${
-                addedItems[item.id]
-                  ? "bg-green-500 hover:bg-green-600"
-                  : "bg-blue-500 hover:bg-blue-600"
-              }`}
-              onClick={() => handleAddToCart(item)}
-            >
-              {addedItems[item.id] ? "Added to Cart!" : "Add to Cart"}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-4 flex space-x-4">
+      <div className="flex">
+        <div className="w-1/4 mr-4 border-r border-gray-300 pr-4">
+          <button onClick={() => handleSort("all")} className="block mb-2">All</button>
+          <button onClick={() => handleSort("beverages")} className="block mb-2">Beverages</button>
+          <button onClick={() => handleSort("ice cream")} className="block mb-2">Ice Cream</button>
+          <button onClick={() => handleSort("chocolates")} className="block mb-2">Chocolates</button>
+          <button onClick={() => handleSort("snacks")} className="block mb-2">Snacks</button>
+          <button onClick={() => handleSort("others")} className="block mb-2">Others</button>
+        </div>
+        <div className="w-3/4 flex flex-col">
+          <div className="grid grid-cols-2 gap-1 flex-grow">
+            {sortedItems.map((item) => (
+              <div key={item.id} className="border rounded p-4 flex flex-col items-start">
+                <div>
+                <img src={`images/${item.image}`} alt={item.name} className="w-full h-full object-cover" />
+                </div>
+                <h3 className="text-md font-medium">{item.name}</h3>
+                <p>Stock: {item.stock}</p>
+                <div className="flex items-center justify-between w-full mt-2">
+                  <span className="text-lg font-bold text-gray-700">{item.price}</span>
+                  {addedItems[item.id] ? (
+      <div className="flex border rounded-sm items-center space-x-2">
         <button
-          className="bg-green-500 text-white rounded-full py-2 px-6 hover:bg-green-600 focus:outline-none transition-all duration-300"
-          onClick={() => navigate("/checkout")}
+          className="font-extrabold text-black rounded-full px-2 py-1"
+          onClick={() => handleDecreaseQuantity(item)}
         >
-          Go to Cart ({cart.reduce((total, item) => total + item.quantity, 0)})
+          -
         </button>
+        <span className="text-lg font-bold">{quantities[item.id]}</span>
+        <button
+          className="font-extrabold text-black rounded-full px-2 py-1"
+          onClick={() => handleIncreaseQuantity(item)}
+        >
+          +
+        </button>
+      </div>
+    ) : (
+      <button
+        className="bg-gray-200 text-black rounded-md px-2 py-1"
+        onClick={() => handleAddToCart(item)}
+      >
+        Add
+      </button>
+    )}
+  </div>
+</div>
+            ))}
+          </div>
+          <div className="mt-4 flex">
+            <button
+              className="bg-green-500 font-semibold text-white rounded-md py-2 px-6 hover:bg-green-600 focus:outline-none transition-all duration-300"
+              onClick={() => navigate("/checkout")}
+            >
+              Go to Cart ({cart.reduce((total, item) => total + item.quantity, 0)})
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

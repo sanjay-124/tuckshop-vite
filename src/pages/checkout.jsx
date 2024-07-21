@@ -4,6 +4,7 @@ import { db } from "../fireconfig";
 import { doc, updateDoc, arrayUnion, collection, addDoc } from "firebase/firestore/lite";
 import { useUser } from "../UserContext";
 import { useCart } from "../CartContext";
+import { toast } from "react-toastify";
 
 const Checkout = () => {
   const { user } = useUser();
@@ -39,6 +40,7 @@ const Checkout = () => {
 
     clearCart();
     alert("Order placed successfully!");
+    toast.success("Order placed successfully!");
     navigate("/tuckshop");
   };
 
@@ -53,7 +55,7 @@ const Checkout = () => {
               {cart.map((item) => (
                 <li key={item.id} className="border-b p-4 mb-2 flex justify-between items-center">
                   <span>{item.name}</span>
-                  <span>{item.quantity} x ${item.price} = ${item.quantity * item.price}</span>
+                  <span>{item.quantity} x {item.price} = {item.quantity * item.price}</span>
                 </li>
               ))}
             </ul>
@@ -63,11 +65,11 @@ const Checkout = () => {
           {cart.length > 0 && (
             <>
               <p className="text-lg font-medium mt-4">
-                Total Amount: $
+                Total Amount:
                 {cart.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2)}
               </p>
               <button
-                className="bg-green-500 text-white rounded-full py-2 px-6 mt-4 hover:bg-green-600 focus:outline-none transition-all duration-300"
+                className="bg-green-500 text-white rounded-md py-2 px-6 mt-4 hover:bg-green-600 focus:outline-none transition-all duration-300"
                 onClick={handlePlaceOrder}
               >
                 Place Order
