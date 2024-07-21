@@ -8,7 +8,6 @@ import {
 } from "firebase/auth";
 import { ToastContainer, toast } from "react-toastify";
 import { doc, setDoc } from "firebase/firestore/lite";
-import { useNavigate } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
 
 const boarderEmails = ["president@gmail.com", "mrsanjay2709@gmail.com"];
@@ -20,8 +19,6 @@ function App() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
-
-  const navigate = useNavigate();
 
   const handleCreateAccountClick = () => {
     setFormVisible(!isFormVisible);
@@ -81,7 +78,7 @@ function App() {
       );
       const user = userCredential.user;
       console.log("Logged in successfully:", user);
-      navigate("/tuckshop");
+      window.location.href = `/tuckshop?name=${user.displayName}&email=${user.email}`;
     } catch (error) {
       console.error("Error logging in:", error);
       toast.error("Error logging in. Please try again.");

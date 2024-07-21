@@ -85,7 +85,7 @@ const Tuckshop = () => {
 
   return (
     <div className="p-1">
-      <Header />
+      <Header currentPage="tuckshop"/>
       <div className="mb-4">
         {user ? (
           <h1 className="text-xl pt-2 font-light">

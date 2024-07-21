@@ -34,8 +34,8 @@ const Orders = () => {
 
   return (
     <div className="p-4">
-        <Header/>
-      <h1 className="text-2xl font-bold mb-4">Your Orders</h1>
+        <Header currentPage="orders"/>
+      <h1 className="text-xl font-semibold mb-4">Your Orders</h1>
       <p className="text-lg font-semibold mb-4">Current Balance: {balance.toFixed(2)}</p>
       {orders.length > 0 ? (
         <ul className="space-y-4">
