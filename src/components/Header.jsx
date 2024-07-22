@@ -5,15 +5,16 @@ import { auth } from "../fireconfig"; // Ensure this is the correct import path
 
 const Header = ({ currentPage }) => {
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, setUser } = useUser();
 
-  const handleLogout = async () => {
-    try {
-      await auth.signOut();
+  const handleLogout = () => {
+    auth.signOut().then(() => {
+      localStorage.removeItem('user');
+      setUser(null);
       navigate("/");
-    } catch (error) {
-      console.error('Logout failed', error);
-    }
+    }).catch((error) => {
+      console.error("Error signing out: ", error);
+    });
   };
 
   return (

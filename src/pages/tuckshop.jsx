@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../fireconfig";
+import { db, auth } from "../fireconfig";
 import { collection, getDocs } from "firebase/firestore/lite";
 import { useUser } from "../UserContext";
 import Header from "../components/Header.jsx";
@@ -7,7 +7,7 @@ import { useCart } from "../CartContext";
 import { useNavigate } from "react-router-dom";
 
 const Tuckshop = () => {
-  const { user } = useUser();
+  const { user, setUser } = useUser();
   const { cart, addToCart, updateCartItemQuantity } = useCart();
   const [items, setItems] = useState([]);
   const [quantities, setQuantities] = useState({});
@@ -15,6 +15,29 @@ const Tuckshop = () => {
   const [sortedItems, setSortedItems] = useState([]);
   const [category, setCategory] = useState("all");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    } else {
+      const unsubscribe = auth.onAuthStateChanged((authUser) => {
+        if (authUser) {
+          setUser(authUser);
+          localStorage.setItem('user', JSON.stringify({
+            uid: authUser.uid,
+            email: authUser.email,
+            displayName: authUser.displayName
+          }));
+        } else {
+          setUser(null);
+          localStorage.removeItem('user');
+        }
+      });
+
+      return () => unsubscribe();
+    }
+  }, [setUser]);
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -57,11 +80,9 @@ const Tuckshop = () => {
     const newQuantity = currentQuantity - 1;
 
     if (newQuantity > 0) {
-      // Update quantity if greater than 0
       setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
       updateCartItemQuantity(item.id, newQuantity);
     } else {
-      // Remove item from cart if quantity is 0
       setQuantities((prev) => {
         const { [item.id]: _, ...rest } = prev;
         return rest;
@@ -70,7 +91,7 @@ const Tuckshop = () => {
         const { [item.id]: _, ...rest } = prev;
         return rest;
       });
-      updateCartItemQuantity(item.id, 0); // Update quantity to 0 in cart
+      updateCartItemQuantity(item.id, 0);
     }
   };
 
@@ -86,11 +107,13 @@ const Tuckshop = () => {
   return (
     <div className="p-1">
       <Header currentPage="tuckshop"/>
-      <div className="mb-4">
+      <div className="mb-4 flex justify-between items-center">
         {user ? (
-          <h1 className="text-xl pt-2 font-light">
-            Welcome {user.displayName}
-          </h1>
+          <>
+            <h1 className="text-xl pt-2 font-light">
+              Welcome {user.displayName}
+            </h1>
+          </>
         ) : (
           <p>Please log in to see your details.</p>
         )}
@@ -115,7 +138,7 @@ const Tuckshop = () => {
             Beverages
           </button>
           <button
-            onClick={() => handleSort("ice cream")}
+            onClick={() => handleSort("icecream")}
             className="w-20 h-20 flex flex-col items-center justify-center bg-gray-200 rounded-md"
           >
             <img
@@ -126,7 +149,7 @@ const Tuckshop = () => {
             Ice Cream
           </button>
           <button
-            onClick={() => handleSort("chocolates")}
+            onClick={() => handleSort("chocolate")}
             className="w-20 h-20 flex flex-col items-center justify-center bg-gray-200 rounded-md"
           >
             <img
@@ -163,7 +186,7 @@ const Tuckshop = () => {
               >
                 <div>
                   <img
-                    src={`images/${item.image}`}
+                    src={`${item.image}`}
                     alt={item.name}
                     className="w-full h-full object-cover"
                   />
