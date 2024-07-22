@@ -1,11 +1,20 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+
+const CART_STORAGE_KEY = "cart";
 
 const CartContext = createContext();
 
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+    const storedCart = localStorage.getItem(CART_STORAGE_KEY);
+    return storedCart ? JSON.parse(storedCart) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+  }, [cart]);
 
   const addToCart = (item) => {
     setCart((prevCart) => {
@@ -15,9 +24,9 @@ export const CartProvider = ({ children }) => {
           cartItem.id === item.id
             ? { ...cartItem, quantity: cartItem.quantity + item.quantity }
             : cartItem
-        );
+        ).filter(cartItem => cartItem.quantity > 0);
       } else {
-        return [...prevCart, item];
+        return item.quantity > 0 ? [...prevCart, item] : prevCart;
       }
     });
   };
@@ -26,7 +35,7 @@ export const CartProvider = ({ children }) => {
     setCart((prevCart) =>
       prevCart.map((item) =>
         item.id === itemId ? { ...item, quantity } : item
-      )
+      ).filter(item => item.quantity > 0)
     );
   };
 

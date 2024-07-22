@@ -11,7 +11,7 @@ import { doc, setDoc } from "firebase/firestore/lite";
 import { useNavigate } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
 
-const boarderEmails = ["akshashidhar.cisb.org.in", "mrsanjay2709@gmail.com"];
+const boarderEmails = ["akshashidhar@cisb.org.in", "mrsanjay2709@gmail.com"];
 
 function App() {
   const [isFormVisible, setFormVisible] = useState(false);

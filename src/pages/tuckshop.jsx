@@ -198,7 +198,7 @@ const Tuckshop = () => {
                     {item.price}
                   </span>
                   {addedItems[item.id] ? (
-                    <div className="flex border rounded-sm items-center space-x-2">
+                    <div className="flex border rounded-md items-center space-x-2">
                       <button
                         className="font-extrabold text-black rounded-full px-2 py-1"
                         onClick={() => handleDecreaseQuantity(item)}
@@ -229,11 +229,14 @@ const Tuckshop = () => {
           </div>
           <div className="mt-4 flex">
             <button
-              className="bg-green-500 font-semibold text-white rounded-md py-2 px-6 hover:bg-green-600 focus:outline-none transition-all duration-300"
+              className="bg-emerald-600 font-semibold text-white rounded-md py-2 px-6 hover:bg-green-600 focus:outline-none transition-all duration-300"
               onClick={() => navigate("/checkout")}
             >
-              Go to Cart (
-              {cart.reduce((total, item) => total + item.quantity, 0)})
+  
+                {cart.reduce((total, item) => total + item.quantity, 0)} Items | ₹{cart.reduce((total, item) => total + item.price * item.quantity, 0)}
+                <span className="ml-6">
+                  GO TO CART
+                </span>
             </button>
           </div>
         </div>
