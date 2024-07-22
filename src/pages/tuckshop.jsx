@@ -14,6 +14,7 @@ const Tuckshop = () => {
   const [addedItems, setAddedItems] = useState({});
   const [sortedItems, setSortedItems] = useState([]);
   const [category, setCategory] = useState("all");
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -49,6 +50,7 @@ const Tuckshop = () => {
       }));
       setItems(itemsData);
       setSortedItems(itemsData);
+      setLoading(false);
     };
     fetchItems();
   }, []);
@@ -105,8 +107,8 @@ const Tuckshop = () => {
   };
 
   return (
-    <div className="p-1">
-      <Header currentPage="tuckshop"/>
+    <div className="p-1 h-screen flex flex-col">
+      <Header currentPage="tuckshop" />
       <div className="mb-4 flex justify-between items-center">
         {user ? (
           <>
@@ -118,8 +120,8 @@ const Tuckshop = () => {
           <p>Please log in to see your details.</p>
         )}
       </div>
-      <div className="flex">
-        <div className="w-1/4 mr-1 text-sm border-r border-gray-300 pr-1 flex flex-col items-center space-y-2">
+      <div className="flex flex-grow overflow-hidden">
+        <div className="w-1/4 mr-1 text-sm border-r border-gray-300 pr-1 flex flex-col items-center space-y-2 overflow-y-auto">
           <button
             onClick={() => handleSort("all")}
             className="w-20 h-20 flex items-center justify-center bg-gray-200 rounded-md"
@@ -177,66 +179,71 @@ const Tuckshop = () => {
             Others
           </button>
         </div>
-        <div className="w-3/4 flex flex-col">
-          <div className="grid grid-cols-2 gap-1 flex-grow">
-            {sortedItems.map((item) => (
-              <div
-                key={item.id}
-                className="border rounded p-2 flex flex-col items-start"
-              >
-                <div>
-                  <img
-                    src={`${item.image}`}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <h3 className="text-md font-medium">{item.name}</h3>
-                <p>Stock: {item.stock}</p>
-                <div className="flex items-center justify-between w-full mt-2">
-                  <span className="text-lg font-bold text-gray-700">
-                    {item.price}
-                  </span>
-                  {addedItems[item.id] ? (
-                    <div className="flex border rounded-md items-center space-x-2">
+        <div className="w-3/4 flex flex-col relative overflow-y-auto">
+          {loading ? (
+            <div className="flex-grow flex items-center justify-center">
+              <div className="loader"></div>
+              <p className="mt-4 text-gray-700">Loading items...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-1 flex-grow">
+              {sortedItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="border rounded p-2 flex flex-col items-start"
+                >
+                  <div>
+                    <img
+                      src={`${item.image}`}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <h3 className="text-md font-medium">{item.name}</h3>
+                  <p>Stock: {item.stock}</p>
+                  <div className="flex items-center justify-between w-full mt-2">
+                    <span className="text-lg font-bold text-gray-700">
+                      {item.price}
+                    </span>
+                    {addedItems[item.id] ? (
+                      <div className="flex border rounded-md items-center space-x-2">
+                        <button
+                          className="font-extrabold text-black rounded-full px-2 py-1"
+                          onClick={() => handleDecreaseQuantity(item)}
+                        >
+                          -
+                        </button>
+                        <span className="text-lg font-bold">
+                          {quantities[item.id]}
+                        </span>
+                        <button
+                          className="font-extrabold text-black rounded-full px-2 py-1"
+                          onClick={() => handleIncreaseQuantity(item)}
+                        >
+                          +
+                        </button>
+                      </div>
+                    ) : (
                       <button
-                        className="font-extrabold text-black rounded-full px-2 py-1"
-                        onClick={() => handleDecreaseQuantity(item)}
+                        className="bg-gray-200 text-black rounded-md px-2 py-1"
+                        onClick={() => handleAddToCart(item)}
                       >
-                        -
+                        Add
                       </button>
-                      <span className="text-lg font-bold">
-                        {quantities[item.id]}
-                      </span>
-                      <button
-                        className="font-extrabold text-black rounded-full px-2 py-1"
-                        onClick={() => handleIncreaseQuantity(item)}
-                      >
-                        +
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      className="bg-gray-200 text-black rounded-md px-2 py-1"
-                      onClick={() => handleAddToCart(item)}
-                    >
-                      Add
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex">
+              ))}
+            </div>
+          )}
+          <div className="fixed bottom-0 left-0 w-full bg-white p-2 border-t border-gray-300">
             <button
-              className="bg-emerald-600 font-semibold text-white rounded-md py-2 px-6 hover:bg-green-600 focus:outline-none transition-all duration-300"
+              className="bg-emerald-600 font-semibold text-white rounded-md py-2 px-6 hover:bg-green-600 focus:outline-none transition-all duration-300 w-full"
               onClick={() => navigate("/checkout")}
             >
-  
-                {cart.reduce((total, item) => total + item.quantity, 0)} Items | ₹{cart.reduce((total, item) => total + item.price * item.quantity, 0)}
-                <span className="ml-6">
-                  GO TO CART
-                </span>
+              {cart.reduce((total, item) => total + item.quantity, 0)} Items | ₹
+              {cart.reduce((total, item) => total + item.price * item.quantity, 0)}
+              <span className="ml-6">GO TO CART</span>
             </button>
           </div>
         </div>

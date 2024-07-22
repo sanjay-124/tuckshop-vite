@@ -20,6 +20,8 @@ function App() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
 
   const navigate = useNavigate();
 
@@ -41,6 +43,8 @@ function App() {
       toast.error("Passwords do not match.");
       return;
     }
+    setLoading(true);
+    setLoadingMessage("Creating account...");
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -68,11 +72,15 @@ function App() {
     } catch (error) {
       console.error("Error creating account:", error);
       toast.error("Error creating account. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleModalSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setLoadingMessage("Letting you in...");
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
@@ -81,7 +89,7 @@ function App() {
       );
       const user = userCredential.user;
       console.log("Logged in successfully:", user);
-      
+
       localStorage.setItem('user', JSON.stringify({
         uid: user.uid,
         email: user.email,
@@ -92,6 +100,8 @@ function App() {
     } catch (error) {
       console.error("Error logging in:", error);
       toast.error("Error logging in. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -204,6 +214,12 @@ function App() {
               Sign Up
             </button>
           </form>
+          {loading && (
+            <div className="absolute inset-0 bg-white bg-opacity-75 flex flex-col items-center justify-center">
+              <div className="loader"></div>
+              <p className="mt-4 text-gray-700">{loadingMessage}</p>
+            </div>
+          )}
         </div>
       )}
       {isModalVisible && (
@@ -252,6 +268,12 @@ function App() {
                 Log In
               </button>
             </form>
+            {loading && (
+              <div className="absolute inset-0 bg-white bg-opacity-75 flex flex-col items-center justify-center">
+                <div className="loader"></div>
+                <p className="mt-4 text-gray-700">{loadingMessage}</p>
+              </div>
+            )}
           </div>
         </div>
       )}
