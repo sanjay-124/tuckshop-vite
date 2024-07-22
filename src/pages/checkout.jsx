@@ -1,16 +1,17 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../fireconfig";
 import { doc, updateDoc, arrayUnion, collection, addDoc } from "firebase/firestore/lite";
 import { useUser } from "../UserContext";
 import { useCart } from "../CartContext";
-import { toast } from "react-toastify";
-import { FaArrowLeft } from "react-icons/fa";  // Importing the backward arrow icon from react-icons
+import { ToastContainer, toast } from "react-toastify";
+import { FaArrowLeft } from "react-icons/fa"; // Importing the backward arrow icon from react-icons
 
 const Checkout = () => {
   const { user, setUser } = useUser();
   const { cart, clearCart } = useCart();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -50,6 +51,8 @@ const Checkout = () => {
       userEmail: user.email,
     };
 
+    setLoading(true);
+
     try {
       const ordersRef = collection(db, "orders");
       const newOrderRef = await addDoc(ordersRef, transaction);
@@ -61,15 +64,32 @@ const Checkout = () => {
 
       clearCart();
       toast.success("Order placed successfully!");
-      navigate("/tuckshop");
+      setLoading(false);
+
+      // Introduce a delay to allow the toast message to be displayed
+      setTimeout(() => {
+        navigate("/tuckshop");
+      }, 3000); // Delay of 1.5 seconds
     } catch (error) {
       console.error("Error placing order:", error);
       toast.error("Error placing order. Please try again.");
+      setLoading(false);
     }
   };
 
   return (
     <div className="p-4">
+      <ToastContainer
+        position="top-center"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       <button
         className="text-xl mb-4 flex items-center"
         onClick={() => navigate("/tuckshop")}
@@ -90,19 +110,40 @@ const Checkout = () => {
               ))}
             </ul>
           ) : (
-            <p className="text-xl font-mono italic">YOUR CART IS EMPTY</p>
+            <p className="text-xl italic">YOUR CART IS EMPTY</p>
           )}
           {cart.length > 0 && (
             <>
               <p className="text-lg font-medium mt-4">
-                Total Amount:  
-                 {cart.reduce((total, item) => total + item.price * item.quantity, 0)}
+                Total Amount: ₹{cart.reduce((total, item) => total + item.price * item.quantity, 0)}
               </p>
               <button
                 className="bg-green-500 text-white rounded-md py-2 px-6 mt-4 hover:bg-green-600 focus:outline-none transition-all duration-300"
                 onClick={handlePlaceOrder}
+                disabled={loading}
               >
-                Place Order
+                {loading ? (
+                  <div className="flex items-center">
+                    <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8H4z"
+                      ></path>
+                    </svg>
+                    Processing...
+                  </div>
+                ) : (
+                  "Place Order"
+                )}
               </button>
             </>
           )}

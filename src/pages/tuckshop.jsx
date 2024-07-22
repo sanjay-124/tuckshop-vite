@@ -188,52 +188,52 @@ const Tuckshop = () => {
           ) : (
             <div className="grid grid-cols-2 gap-1 flex-grow mb-16">
               {sortedItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="border rounded p-2 flex flex-col items-start"
-                >
-                  <div>
-                    <img
-                      src={`${item.image}`}
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <h3 className="text-md font-medium">{item.name}</h3>
-                  <p>Stock: {item.stock}</p>
-                  <div className="flex items-center justify-between w-full mt-2">
-                    <span className="text-lg font-bold text-gray-700">
-                      {item.price}
-                    </span>
-                    {addedItems[item.id] ? (
-                      <div className="flex border rounded-md items-center space-x-2">
-                        <button
-                          className="font-extrabold text-black rounded-full px-2 py-1"
-                          onClick={() => handleDecreaseQuantity(item)}
-                        >
-                          -
-                        </button>
-                        <span className="text-lg font-bold">
-                          {quantities[item.id]}
-                        </span>
-                        <button
-                          className="font-extrabold text-black rounded-full px-2 py-1"
-                          onClick={() => handleIncreaseQuantity(item)}
-                        >
-                          +
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        className="bg-gray-200 text-black rounded-md px-2 py-1"
-                        onClick={() => handleAddToCart(item)}
-                      >
-                        Add
-                      </button>
-                    )}
-                  </div>
+              <div
+                key={item.id}
+                className="border rounded p-2 flex flex-col justify-between items-start"
+              >
+                <div className="w-full">
+                  <img
+                    src={`${item.image}`}
+                    alt={item.name}
+                    className="w-full h-32 object-cover mb-2"
+                  />
                 </div>
-              ))}
+                <h3 className="text-md font-medium">{item.name}</h3>
+                <p>Stock: {item.stock}</p>
+                <div className="flex items-center justify-between w-full mt-2">
+                  <span className="text-lg font-bold text-gray-700">
+                    ₹{item.price}
+                  </span>
+                  {addedItems[item.id] ? (
+                    <div className="flex border rounded-md items-center space-x-2">
+                      <button
+                        className="font-extrabold text-black rounded-full px-2 py-1"
+                        onClick={() => handleDecreaseQuantity(item)}
+                      >
+                        -
+                      </button>
+                      <span className="text-lg font-bold">
+                        {quantities[item.id]}
+                      </span>
+                      <button
+                        className="font-extrabold text-black rounded-full px-2 py-1"
+                        onClick={() => handleIncreaseQuantity(item)}
+                      >
+                        +
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="bg-gray-200 text-black rounded-md px-2 py-1"
+                      onClick={() => handleAddToCart(item)}
+                    >
+                      Add
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
             </div>
           )}
         </div>
@@ -244,7 +244,7 @@ const Tuckshop = () => {
           onClick={() => navigate("/checkout")}
         >
           {cart.reduce((total, item) => total + item.quantity, 0)} Items | ₹{cart.reduce((total, item) => total + item.price * item.quantity, 0)}
-          <span className="ml-6">
+          <span className="ml-10">
             GO TO CART
           </span>
         </button>
