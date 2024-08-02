@@ -1,24 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../fireconfig";
-import { doc, updateDoc, arrayUnion, collection, addDoc } from "firebase/firestore/lite";
+import { doc, updateDoc, arrayUnion, collection, addDoc, getDoc, increment, runTransaction } from "firebase/firestore/lite";
 import { useUser } from "../UserContext";
 import { useCart } from "../CartContext";
 import { ToastContainer, toast } from "react-toastify";
-import { FaArrowLeft } from "react-icons/fa"; // Importing the backward arrow icon from react-icons
+import { FaArrowLeft } from "react-icons/fa";
 
 const Checkout = () => {
-  const { user, setUser } = useUser();
+  const { user, updateUserData } = useUser();
   const { cart, clearCart } = useCart();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser && !user) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, [user, setUser]);
 
   const handlePlaceOrder = async () => {
     if (!user) {
@@ -38,41 +31,82 @@ const Checkout = () => {
       0
     );
 
-    const transaction = {
-      timestamp: new Date().toISOString(),
-      cart: filteredCart.map((item) => ({
-        itemid: item.id,
-        item: item.name,
-        quantity: item.quantity,
-        price: item.price,
-      })),
-      transactionAmount,
-      status: false,
-      userEmail: user.email,
-    };
-
     setLoading(true);
 
     try {
-      const ordersRef = collection(db, "orders");
-      const newOrderRef = await addDoc(ordersRef, transaction);
+      await runTransaction(db, async (transaction) => {
+        // Fetch the latest user balance from Firestore
+        const userRef = doc(db, "users", user.email);
+        const userSnapshot = await transaction.get(userRef);
 
-      const userRef = doc(db, "users", user.email);
-      await updateDoc(userRef, {
-        orders: arrayUnion(newOrderRef.id),
+        if (!userSnapshot.exists()) {
+          throw new Error("User data not found.");
+        }
+
+        const userData = userSnapshot.data();
+        const currentBalance = userData.balance || 0;
+
+        if (currentBalance < transactionAmount) {
+          throw new Error("Insufficient balance.");
+        }
+
+        // Check and update stock for each item
+        for (const item of filteredCart) {
+          const itemRef = doc(db, "items", item.id);
+          const itemSnapshot = await transaction.get(itemRef);
+
+          if (!itemSnapshot.exists()) {
+            throw new Error(`Item ${item.name} not found.`);
+          }
+
+          const itemData = itemSnapshot.data();
+          if (itemData.stock < item.quantity) {
+            throw new Error(`Not enough stock for ${item.name}. Available: ${itemData.stock}`);
+          }
+
+          // Update stock
+          transaction.update(itemRef, {
+            stock: increment(-item.quantity)
+          });
+        }
+
+        // Create the order
+        const orderData = {
+          timestamp: new Date().toISOString(),
+          cart: filteredCart.map((item) => ({
+            itemid: item.id,
+            item: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          transactionAmount,
+          status: false,
+          userEmail: user.email,
+        };
+
+        const ordersRef = collection(db, "orders");
+        const newOrderRef = doc(ordersRef);
+        transaction.set(newOrderRef, orderData);
+
+        // Update user data
+        transaction.update(userRef, {
+          orders: arrayUnion(newOrderRef.id),
+          balance: increment(-transactionAmount),
+          transactionAmount: increment(transactionAmount)
+        });
       });
 
+      await updateUserData(user.email);
       clearCart();
       toast.success("Order placed successfully!");
       setLoading(false);
 
-      // Introduce a delay to allow the toast message to be displayed
       setTimeout(() => {
         navigate("/tuckshop");
-      }, 3000); // Delay of 1.5 seconds
+      }, 2000);
     } catch (error) {
       console.error("Error placing order:", error);
-      toast.error("Error placing order. Please try again.");
+      toast.error(error.message || "Error placing order. Please try again.");
       setLoading(false);
     }
   };
@@ -81,7 +115,7 @@ const Checkout = () => {
     <div className="p-4">
       <ToastContainer
         position="top-center"
-        autoClose={2000}
+        autoClose={1000}
         hideProgressBar={false}
         newestOnTop={false}
         rtl={false}

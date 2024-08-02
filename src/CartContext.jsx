@@ -22,11 +22,11 @@ export const CartProvider = ({ children }) => {
       if (existingItem) {
         return prevCart.map((cartItem) =>
           cartItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + item.quantity }
+            ? { ...cartItem, quantity: Math.min(cartItem.quantity + item.quantity, item.stock) }
             : cartItem
         ).filter(cartItem => cartItem.quantity > 0);
       } else {
-        return item.quantity > 0 ? [...prevCart, item] : prevCart;
+        return item.quantity > 0 ? [...prevCart, { ...item, quantity: Math.min(item.quantity, item.stock) }] : prevCart;
       }
     });
   };
@@ -34,7 +34,7 @@ export const CartProvider = ({ children }) => {
   const updateCartItemQuantity = (itemId, quantity) => {
     setCart((prevCart) =>
       prevCart.map((item) =>
-        item.id === itemId ? { ...item, quantity } : item
+        item.id === itemId ? { ...item, quantity: Math.min(quantity, item.stock) } : item
       ).filter(item => item.quantity > 0)
     );
   };

@@ -52,14 +52,14 @@ function App() {
         password
       );
       const user = userCredential.user;
-      console.log("Account created successfully:", user);
 
       await updateProfile(user, { displayName: name });
 
       const userData = {
         name: name,
-        balance: 500,
-        transactions: [],
+        balance: 800,
+        transactionAmount: 0,
+        orders: []
       };
       await setDoc(doc(db, "users", email), userData);
 
@@ -88,7 +88,6 @@ function App() {
         password
       );
       const user = userCredential.user;
-      console.log("Logged in successfully:", user);
 
       localStorage.setItem('user', JSON.stringify({
         uid: user.uid,

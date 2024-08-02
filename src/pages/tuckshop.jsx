@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { db, auth } from "../fireconfig";
-import { collection, getDocs } from "firebase/firestore/lite";
+import { collection, getDocs, query, where, updateDoc, doc } from "firebase/firestore/lite";
 import { useUser } from "../UserContext";
 import Header from "../components/Header.jsx";
 import { useCart } from "../CartContext";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+
+const POLL_INTERVAL = 3000; // Polling interval in milliseconds (3 seconds)
 
 const Tuckshop = () => {
-  const { user, setUser } = useUser();
+  const { user, setUser, updateBalance } = useUser();
   const { cart, addToCart, updateCartItemQuantity } = useCart();
   const [items, setItems] = useState([]);
   const [quantities, setQuantities] = useState({});
@@ -50,10 +53,50 @@ const Tuckshop = () => {
       }));
       setItems(itemsData);
       setSortedItems(itemsData);
-      setLoading(false); // Set loading to false once items are fetched
+      setLoading(false);
     };
+
     fetchItems();
+
+    const intervalId = setInterval(fetchItems, POLL_INTERVAL);
+
+    return () => clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    const checkCompletedOrders = async () => {
+      if (user) {
+        const ordersRef = collection(db, "orders");
+        const q = query(ordersRef, where("userEmail", "==", user.email), where("status", "==", true), where("processed", "==", false));
+        const querySnapshot = await getDocs(q);
+        
+        for (const docSnapshot of querySnapshot.docs) {
+          const orderData = docSnapshot.data();
+          const userRef = doc(db, "users", user.email);
+          const userDoc = await getDocs(userRef);
+          const userData = userDoc.data();
+          
+          if (userData.balance >= orderData.transactionAmount) {
+            const newBalance = userData.balance - orderData.transactionAmount;
+            await updateDoc(userRef, {
+              balance: newBalance,
+              transactions: [...userData.transactions, {
+                type: "debit",
+                amount: orderData.transactionAmount,
+                date: new Date().toISOString(),
+                orderId: docSnapshot.id
+              }]
+            });
+            
+            await updateDoc(docSnapshot.ref, { processed: true });
+            updateBalance(newBalance);
+          }
+        }
+      }
+    };
+
+    checkCompletedOrders();
+  }, [user, updateBalance]);
 
   useEffect(() => {
     const cartQuantities = cart.reduce((acc, item) => {
@@ -66,6 +109,10 @@ const Tuckshop = () => {
 
   const handleAddToCart = (item) => {
     const quantity = quantities[item.id] || 1;
+    if (quantity > item.stock) {
+      toast.error(`Only ${item.stock} items available in stock.`);
+      return;
+    }
     addToCart({ ...item, quantity });
     setQuantities((prev) => ({ ...prev, [item.id]: quantity }));
     setAddedItems((prev) => ({ ...prev, [item.id]: true }));
@@ -73,6 +120,9 @@ const Tuckshop = () => {
 
   const handleIncreaseQuantity = (item) => {
     const newQuantity = (quantities[item.id] || 1) + 1;
+    if (newQuantity > item.stock) {
+      return;
+    }
     setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
     updateCartItemQuantity(item.id, newQuantity);
   };
@@ -190,7 +240,7 @@ const Tuckshop = () => {
               {sortedItems.map((item) => (
               <div
                 key={item.id}
-                className="border rounded p-2 flex flex-col justify-between items-start"
+                className={`border rounded p-2 flex flex-col justify-between items-start ${item.stock === 0 ? 'opacity-50' : ''}`}
               >
                 <div className="w-full">
                   <img
@@ -205,31 +255,39 @@ const Tuckshop = () => {
                   <span className="text-lg font-bold text-gray-700">
                     ₹{item.price}
                   </span>
-                  {addedItems[item.id] ? (
-                    <div className="flex border rounded-md items-center space-x-2">
+                  {item.stock > 0 ? (
+                    addedItems[item.id] ? (
+                      <div className="flex border rounded-md items-center space-x-2">
+                        <button
+                          className="font-extrabold text-black rounded-full px-2 py-1"
+                          onClick={() => handleDecreaseQuantity(item)}
+                        >
+                          -
+                        </button>
+                        <span className="text-lg font-bold">
+                          {quantities[item.id]}
+                        </span>
+                        <button
+                          className="font-extrabold text-black rounded-full px-2 py-1"
+                          onClick={() => handleIncreaseQuantity(item)}
+                        >
+                          +
+                        </button>
+                      </div>
+                    ) : (
                       <button
-                        className="font-extrabold text-black rounded-full px-2 py-1"
-                        onClick={() => handleDecreaseQuantity(item)}
+                        className="bg-gray-200 text-black rounded-md px-2 py-1"
+                        onClick={() => handleAddToCart(item)}
                       >
-                        -
+                        Add
                       </button>
-                      <span className="text-lg font-bold">
-                        {quantities[item.id]}
-                      </span>
-                      <button
-                        className="font-extrabold text-black rounded-full px-2 py-1"
-                        onClick={() => handleIncreaseQuantity(item)}
-                      >
-                        +
-                      </button>
-                    </div>
+                    )
                   ) : (
-                    <button
+                    <span
                       className="bg-gray-200 text-black rounded-md px-2 py-1"
-                      onClick={() => handleAddToCart(item)}
                     >
-                      Add
-                    </button>
+                      Sold Out
+                    </span>
                   )}
                 </div>
               </div>

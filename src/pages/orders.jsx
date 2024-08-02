@@ -25,7 +25,8 @@ const Orders = () => {
         const userRef = doc(db, "users", user.email);
         const userDoc = await getDoc(userRef);
         if (userDoc.exists()) {
-          setBalance(userDoc.data().balance || 0);
+          const userBalance = 800 - (userDoc.data().transactionAmount || 0);
+          setBalance(userBalance);
         }
       }
     };
