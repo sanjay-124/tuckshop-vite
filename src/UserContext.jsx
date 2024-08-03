@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { auth, db } from './fireconfig';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore/lite';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { db } from './fireconfig';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore/lite';
 
 const UserContext = createContext();
 
@@ -11,6 +11,7 @@ export const UserProvider = ({ children }) => {
   const [expense, setExpense] = useState(0);
 
   useEffect(() => {
+    const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
@@ -61,6 +62,7 @@ export const UserProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      const auth = getAuth();
       await auth.signOut();
       setUser(null);
       setBalance(0);

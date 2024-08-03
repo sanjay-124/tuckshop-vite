@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { db, auth } from "../fireconfig";
+import { db } from "../fireconfig";
 import { collection, getDocs, query, where, updateDoc, doc } from "firebase/firestore/lite";
 import { useUser } from "../UserContext";
 import Header from "../components/Header.jsx";
@@ -7,10 +7,10 @@ import { useCart } from "../CartContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
-const POLL_INTERVAL = 3000; // Polling interval in milliseconds (3 seconds)
+const POLL_INTERVAL = 3000;
 
 const Tuckshop = () => {
-  const { user, setUser, updateBalance } = useUser();
+  const { user, updateBalance } = useUser();
   const { cart, addToCart, updateCartItemQuantity } = useCart();
   const [items, setItems] = useState([]);
   const [quantities, setQuantities] = useState({});
@@ -21,27 +21,10 @@ const Tuckshop = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
-      const unsubscribe = auth.onAuthStateChanged((authUser) => {
-        if (authUser) {
-          setUser(authUser);
-          localStorage.setItem('user', JSON.stringify({
-            uid: authUser.uid,
-            email: authUser.email,
-            displayName: authUser.displayName
-          }));
-        } else {
-          setUser(null);
-          localStorage.removeItem('user');
-        }
-      });
-
-      return () => unsubscribe();
+    if (!user) {
+      navigate("/");
     }
-  }, [setUser]);
+  }, [user, navigate]);
 
   useEffect(() => {
     const fetchItems = async () => {
