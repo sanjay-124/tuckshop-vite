@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../fireconfig";
-import { collection, getDocs, query, where, updateDoc, doc } from "firebase/firestore/lite";
+import { collection, getDocs, query, where, updateDoc, doc, onSnapshot, runTransaction } from "firebase/firestore";
 import { useUser } from "../UserContext";
 import Header from "../components/Header.jsx";
 import { useCart } from "../CartContext";
@@ -19,6 +19,7 @@ const Tuckshop = () => {
   const [category, setCategory] = useState("all");
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [itemsRef, setItemsRef] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -27,23 +28,20 @@ const Tuckshop = () => {
   }, [user, navigate]);
 
   useEffect(() => {
-    const fetchItems = async () => {
-      const itemsCollection = collection(db, "items");
-      const itemsSnapshot = await getDocs(itemsCollection);
-      const itemsData = itemsSnapshot.docs.map((doc) => ({
+    const itemsCollection = collection(db, "items");
+    setItemsRef(itemsCollection);
+
+    const unsubscribe = onSnapshot(itemsCollection, (snapshot) => {
+      const itemsData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
       setItems(itemsData);
       setSortedItems(itemsData);
       setLoading(false);
-    };
+    });
 
-    fetchItems();
-
-    const intervalId = setInterval(fetchItems, POLL_INTERVAL);
-
-    return () => clearInterval(intervalId);
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -90,43 +88,98 @@ const Tuckshop = () => {
     setAddedItems(cartQuantities);
   }, [cart]);
 
-  const handleAddToCart = (item) => {
+  const handleAddToCart = async (item) => {
     const quantity = quantities[item.id] || 1;
     if (quantity > item.stock) {
       toast.error(`Only ${item.stock} items available in stock.`);
       return;
     }
-    addToCart({ ...item, quantity });
-    setQuantities((prev) => ({ ...prev, [item.id]: quantity }));
-    setAddedItems((prev) => ({ ...prev, [item.id]: true }));
-  };
 
-  const handleIncreaseQuantity = (item) => {
-    const newQuantity = (quantities[item.id] || 1) + 1;
-    if (newQuantity > item.stock) {
-      return;
+    try {
+      await runTransaction(db, async (transaction) => {
+        const itemRef = doc(itemsRef, item.id);
+        const itemDoc = await transaction.get(itemRef);
+        
+        if (!itemDoc.exists()) {
+          throw new Error("Item does not exist!");
+        }
+
+        const currentStock = itemDoc.data().stock;
+        if (currentStock < quantity) {
+          throw new Error(`Only ${currentStock} items available in stock.`);
+        }
+
+        transaction.update(itemRef, { stock: currentStock - quantity });
+      });
+
+      addToCart({ ...item, quantity });
+      setQuantities((prev) => ({ ...prev, [item.id]: quantity }));
+      setAddedItems((prev) => ({ ...prev, [item.id]: true }));
+    } catch (error) {
+      toast.error(error.message);
     }
-    setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
-    updateCartItemQuantity(item.id, newQuantity);
   };
 
-  const handleDecreaseQuantity = (item) => {
+  const handleIncreaseQuantity = async (item) => {
+    const newQuantity = (quantities[item.id] || 1) + 1;
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        const itemRef = doc(itemsRef, item.id);
+        const itemDoc = await transaction.get(itemRef);
+        
+        if (!itemDoc.exists()) {
+          throw new Error("Item does not exist!");
+        }
+
+        const currentStock = itemDoc.data().stock;
+        if (currentStock < newQuantity) {
+          throw new Error(`Only ${currentStock} items available in stock.`);
+        }
+
+        transaction.update(itemRef, { stock: currentStock - 1 });
+      });
+
+      setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
+      updateCartItemQuantity(item.id, newQuantity);
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleDecreaseQuantity = async (item) => {
     const currentQuantity = quantities[item.id] || 1;
     const newQuantity = currentQuantity - 1;
 
-    if (newQuantity > 0) {
-      setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
-      updateCartItemQuantity(item.id, newQuantity);
-    } else {
-      setQuantities((prev) => {
-        const { [item.id]: _, ...rest } = prev;
-        return rest;
+    try {
+      await runTransaction(db, async (transaction) => {
+        const itemRef = doc(itemsRef, item.id);
+        const itemDoc = await transaction.get(itemRef);
+        
+        if (!itemDoc.exists()) {
+          throw new Error("Item does not exist!");
+        }
+
+        const currentStock = itemDoc.data().stock;
+        transaction.update(itemRef, { stock: currentStock + 1 });
       });
-      setAddedItems((prev) => {
-        const { [item.id]: _, ...rest } = prev;
-        return rest;
-      });
-      updateCartItemQuantity(item.id, 0);
+
+      if (newQuantity > 0) {
+        setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
+        updateCartItemQuantity(item.id, newQuantity);
+      } else {
+        setQuantities((prev) => {
+          const { [item.id]: _, ...rest } = prev;
+          return rest;
+        });
+        setAddedItems((prev) => {
+          const { [item.id]: _, ...rest } = prev;
+          return rest;
+        });
+        updateCartItemQuantity(item.id, 0);
+      }
+    } catch (error) {
+      toast.error(error.message);
     }
   };
 

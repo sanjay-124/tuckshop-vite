@@ -10,6 +10,9 @@ import { ToastContainer, toast } from "react-toastify";
 import { doc, setDoc } from "firebase/firestore/lite";
 import { useNavigate } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
+import "@fontsource/poppins";
+import "@fontsource/montserrat/600.css";  // Semi-bold weight
+import "@fontsource/montserrat/700.css";  // Bold weight
 
 const boarderEmails = ["akshashidhar@cisb.org.in", "mrsanjay2709@gmail.com"];
 
@@ -106,7 +109,7 @@ function App() {
 
   return (
     <div
-      className="relative bg-cover bg-center bg-no-repeat w-full h-screen"
+      className="relative bg-cover bg-center bg-no-repeat w-full h-screen font-montserrat"
       style={{ backgroundImage: "url('./bg.jpg')", zIndex: 1 }}
     >
       <ToastContainer />
@@ -114,7 +117,7 @@ function App() {
         className="absolute top-10 w-full bg-[#7E7F80] h-[60px] flex items-center justify-center"
         style={{ zIndex: 2 }}
       >
-        <p className="italic text-white text-2xl text-center">
+        <p className="italic text-white text-xl text-center">
           Managed by Boarding, Canadian International School
         </p>
       </div>
@@ -123,7 +126,7 @@ function App() {
         style={{ zIndex: 2 }}
       >
         <h1 className="text-6xl font-bold text-[#11b682]">TUCKSHOP IS HERE</h1>
-        <p className="mt-4 text-2xl font-bold text-black">
+        <p className="mt-4 text-xl font-bold text-black">
           The new arrivals have, well, newly arrived. Check out the latest
           options from our tuckshop while they're still in stock.
         </p>
