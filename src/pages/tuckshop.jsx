@@ -20,6 +20,7 @@ const Tuckshop = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const [itemsRef, setItemsRef] = useState(null);
+  const [initialQuantities, setInitialQuantities] = useState({});
 
   useEffect(() => {
     if (!user) {
@@ -112,7 +113,7 @@ const Tuckshop = () => {
 
     try {
       await runTransaction(db, async (transaction) => {
-        const itemRef = doc(itemsRef, item.id);
+        const itemRef = doc(db, "items", item.id);
         const itemDoc = await transaction.get(itemRef);
         
         if (!itemDoc.exists()) {
@@ -130,17 +131,18 @@ const Tuckshop = () => {
       addToCart({ ...item, quantity });
       setQuantities((prev) => ({ ...prev, [item.id]: quantity }));
       setAddedItems((prev) => ({ ...prev, [item.id]: true }));
+      setInitialQuantities((prev) => ({ ...prev, [item.id]: quantity }));
     } catch (error) {
       toast.error(error.message);
     }
   };
 
   const handleIncreaseQuantity = async (item) => {
-    const newQuantity = (quantities[item.id] || 1) + 1;
+    const newQuantity = (quantities[item.id] || 0) + 1;
 
     try {
       await runTransaction(db, async (transaction) => {
-        const itemRef = doc(itemsRef, item.id);
+        const itemRef = doc(db, "items", item.id);
         const itemDoc = await transaction.get(itemRef);
         
         if (!itemDoc.exists()) {
@@ -148,8 +150,8 @@ const Tuckshop = () => {
         }
 
         const currentStock = itemDoc.data().stock;
-        if (currentStock < newQuantity) {
-          throw new Error(`Only ${currentStock} items available in stock.`);
+        if (currentStock < 1) {
+          throw new Error(`No more items available in stock.`);
         }
 
         transaction.update(itemRef, { stock: currentStock - 1 });
@@ -157,18 +159,20 @@ const Tuckshop = () => {
 
       setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
       updateCartItemQuantity(item.id, newQuantity);
+      setInitialQuantities((prev) => ({ ...prev, [item.id]: (prev[item.id] || 0) + 1 }));
     } catch (error) {
       toast.error(error.message);
     }
   };
 
   const handleDecreaseQuantity = async (item) => {
-    const currentQuantity = quantities[item.id] || 1;
+    const currentQuantity = quantities[item.id] || 0;
     const newQuantity = currentQuantity - 1;
+    const initialQuantity = initialQuantities[item.id] || 0;
 
     try {
       await runTransaction(db, async (transaction) => {
-        const itemRef = doc(itemsRef, item.id);
+        const itemRef = doc(db, "items", item.id);
         const itemDoc = await transaction.get(itemRef);
         
         if (!itemDoc.exists()) {
@@ -176,7 +180,11 @@ const Tuckshop = () => {
         }
 
         const currentStock = itemDoc.data().stock;
-        transaction.update(itemRef, { stock: currentStock + 1 });
+        
+        // Only increase stock if we're decreasing from the initial added quantity
+        if (currentQuantity <= initialQuantity) {
+          transaction.update(itemRef, { stock: currentStock + 1 });
+        }
       });
 
       if (newQuantity > 0) {
@@ -188,6 +196,10 @@ const Tuckshop = () => {
           return rest;
         });
         setAddedItems((prev) => {
+          const { [item.id]: _, ...rest } = prev;
+          return rest;
+        });
+        setInitialQuantities((prev) => {
           const { [item.id]: _, ...rest } = prev;
           return rest;
         });
@@ -204,6 +216,35 @@ const Tuckshop = () => {
       setSortedItems(items);
     } else {
       setSortedItems(items.filter((item) => item.category === category));
+    }
+  };
+
+  const placeOrder = async () => {
+    if (!user) {
+      toast.error("Please log in to place an order");
+      return;
+    }
+
+    try {
+      const orderRef = await addDoc(collection(db, "orders"), {
+        userEmail: user.email,
+        items: cart.map(item => ({
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        status: "pending",
+        transactionAmount: cart.reduce((total, item) => total + item.price * item.quantity, 0),
+        createdAt: serverTimestamp(),
+        processed: false
+      });
+
+      toast.success("Order placed successfully!");
+      navigate("/orders");
+    } catch (error) {
+      console.error("Error placing order:", error);
+      toast.error(`Failed to place order: ${error.message}`);
     }
   };
 
