@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../fireconfig";
-import { collection, getDocs, query, where, updateDoc, doc, onSnapshot, runTransaction } from "firebase/firestore";
+import { collection, getDocs, query, where, updateDoc, doc, onSnapshot, runTransaction, addDoc, serverTimestamp } from "firebase/firestore";
 import { useUser } from "../UserContext";
 import Header from "../components/Header.jsx";
 import { useCart } from "../CartContext";
@@ -48,35 +48,50 @@ const Tuckshop = () => {
     const checkCompletedOrders = async () => {
       if (user) {
         const ordersRef = collection(db, "orders");
-        const q = query(ordersRef, where("userEmail", "==", user.email), where("status", "==", true), where("processed", "==", false));
+        const q = query(ordersRef, where("userEmail", "==", user.email), where("status", "==", "completed"), where("processed", "==", false));
         const querySnapshot = await getDocs(q);
         
         for (const docSnapshot of querySnapshot.docs) {
           const orderData = docSnapshot.data();
           const userRef = doc(db, "users", user.email);
-          const userDoc = await getDocs(userRef);
-          const userData = userDoc.data();
           
-          if (userData.balance >= orderData.transactionAmount) {
-            const newBalance = userData.balance - orderData.transactionAmount;
-            await updateDoc(userRef, {
-              balance: newBalance,
-              transactions: [...userData.transactions, {
-                type: "debit",
-                amount: orderData.transactionAmount,
-                date: new Date().toISOString(),
-                orderId: docSnapshot.id
-              }]
+          try {
+            await runTransaction(db, async (transaction) => {
+              const userDoc = await transaction.get(userRef);
+              if (!userDoc.exists()) {
+                throw new Error("User document does not exist!");
+              }
+              
+              const userData = userDoc.data();
+              if (userData.balance >= orderData.transactionAmount) {
+                const newBalance = userData.balance - orderData.transactionAmount;
+                transaction.update(userRef, {
+                  balance: newBalance,
+                  transactions: [...userData.transactions, {
+                    type: "debit",
+                    amount: orderData.transactionAmount,
+                    date: serverTimestamp(),
+                    orderId: docSnapshot.id
+                  }]
+                });
+                
+                transaction.update(docSnapshot.ref, { processed: true });
+                updateBalance(newBalance);
+              } else {
+                throw new Error("Insufficient balance");
+              }
             });
-            
-            await updateDoc(docSnapshot.ref, { processed: true });
-            updateBalance(newBalance);
+          } catch (error) {
+            console.error("Failed to process order:", error);
+            toast.error(`Failed to process order: ${error.message}`);
           }
         }
       }
     };
 
-    checkCompletedOrders();
+    const intervalId = setInterval(checkCompletedOrders, 30000); // Check every 30 seconds
+
+    return () => clearInterval(intervalId);
   }, [user, updateBalance]);
 
   useEffect(() => {
