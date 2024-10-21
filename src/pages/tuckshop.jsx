@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../fireconfig";
-import { collection, getDocs, query, where, updateDoc, doc, onSnapshot, runTransaction, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, query, where, updateDoc, doc, getDoc } from "firebase/firestore/lite";
 import { useUser } from "../UserContext";
 import Header from "../components/Header.jsx";
 import { useCart } from "../CartContext";
@@ -19,8 +19,6 @@ const Tuckshop = () => {
   const [category, setCategory] = useState("all");
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const [itemsRef, setItemsRef] = useState(null);
-  const [initialQuantities, setInitialQuantities] = useState({});
 
   useEffect(() => {
     if (!user) {
@@ -29,70 +27,67 @@ const Tuckshop = () => {
   }, [user, navigate]);
 
   useEffect(() => {
-    const itemsCollection = collection(db, "items");
-    setItemsRef(itemsCollection);
+    console.log("Firestore instance:", db);
+    const fetchItems = async () => {
+      try {
+        const itemsCollection = collection(db, "items");
+        const itemsSnapshot = await getDocs(itemsCollection);
+        const itemsData = itemsSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setItems(itemsData);
+        setSortedItems(itemsData);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching items:", error);
+        setLoading(false);
+      }
+    };
 
-    const unsubscribe = onSnapshot(itemsCollection, (snapshot) => {
-      const itemsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setItems(itemsData);
-      setSortedItems(itemsData);
-      setLoading(false);
-    });
+    fetchItems();
 
-    return () => unsubscribe();
+    const intervalId = setInterval(fetchItems, POLL_INTERVAL);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
     const checkCompletedOrders = async () => {
       if (user) {
         const ordersRef = collection(db, "orders");
-        const q = query(ordersRef, where("userEmail", "==", user.email), where("status", "==", "completed"), where("processed", "==", false));
+        const q = query(ordersRef, where("userEmail", "==", user.email), where("status", "==", true), where("processed", "==", false));
         const querySnapshot = await getDocs(q);
         
         for (const docSnapshot of querySnapshot.docs) {
           const orderData = docSnapshot.data();
           const userRef = doc(db, "users", user.email);
+          const userDoc = await getDoc(userRef);
           
-          try {
-            await runTransaction(db, async (transaction) => {
-              const userDoc = await transaction.get(userRef);
-              if (!userDoc.exists()) {
-                throw new Error("User document does not exist!");
-              }
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            
+            if (userData.balance >= orderData.transactionAmount) {
+              const newBalance = userData.balance - orderData.transactionAmount;
+              await updateDoc(userRef, {
+                balance: newBalance,
+                transactions: [...userData.transactions, {
+                  type: "debit",
+                  amount: orderData.transactionAmount,
+                  date: new Date().toISOString(),
+                  orderId: docSnapshot.id
+                }]
+              });
               
-              const userData = userDoc.data();
-              if (userData.balance >= orderData.transactionAmount) {
-                const newBalance = userData.balance - orderData.transactionAmount;
-                transaction.update(userRef, {
-                  balance: newBalance,
-                  transactions: [...userData.transactions, {
-                    type: "debit",
-                    amount: orderData.transactionAmount,
-                    date: serverTimestamp(),
-                    orderId: docSnapshot.id
-                  }]
-                });
-                
-                transaction.update(docSnapshot.ref, { processed: true });
-                updateBalance(newBalance);
-              } else {
-                throw new Error("Insufficient balance");
-              }
-            });
-          } catch (error) {
-            console.error("Failed to process order:", error);
-            toast.error(`Failed to process order: ${error.message}`);
+              await updateDoc(docSnapshot.ref, { processed: true });
+              updateBalance(newBalance);
+            }
           }
         }
       }
     };
 
-    const intervalId = setInterval(checkCompletedOrders, 30000); // Check every 30 seconds
-
-    return () => clearInterval(intervalId);
+    checkCompletedOrders();
   }, [user, updateBalance]);
 
   useEffect(() => {
@@ -104,109 +99,43 @@ const Tuckshop = () => {
     setAddedItems(cartQuantities);
   }, [cart]);
 
-  const handleAddToCart = async (item) => {
+  const handleAddToCart = (item) => {
     const quantity = quantities[item.id] || 1;
     if (quantity > item.stock) {
       toast.error(`Only ${item.stock} items available in stock.`);
       return;
     }
-
-    try {
-      await runTransaction(db, async (transaction) => {
-        const itemRef = doc(db, "items", item.id);
-        const itemDoc = await transaction.get(itemRef);
-        
-        if (!itemDoc.exists()) {
-          throw new Error("Item does not exist!");
-        }
-
-        const currentStock = itemDoc.data().stock;
-        if (currentStock < quantity) {
-          throw new Error(`Only ${currentStock} items available in stock.`);
-        }
-
-        transaction.update(itemRef, { stock: currentStock - quantity });
-      });
-
-      addToCart({ ...item, quantity });
-      setQuantities((prev) => ({ ...prev, [item.id]: quantity }));
-      setAddedItems((prev) => ({ ...prev, [item.id]: true }));
-      setInitialQuantities((prev) => ({ ...prev, [item.id]: quantity }));
-    } catch (error) {
-      toast.error(error.message);
-    }
+    addToCart({ ...item, quantity });
+    setQuantities((prev) => ({ ...prev, [item.id]: quantity }));
+    setAddedItems((prev) => ({ ...prev, [item.id]: true }));
   };
 
-  const handleIncreaseQuantity = async (item) => {
-    const newQuantity = (quantities[item.id] || 0) + 1;
+  const handleIncreaseQuantity = (item) => {
+    const newQuantity = (quantities[item.id] || 1) + 1;
+    if (newQuantity > item.stock) {
+      return;
+    }
+    setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
+    updateCartItemQuantity(item.id, newQuantity);
+  };
 
-    try {
-      await runTransaction(db, async (transaction) => {
-        const itemRef = doc(db, "items", item.id);
-        const itemDoc = await transaction.get(itemRef);
-        
-        if (!itemDoc.exists()) {
-          throw new Error("Item does not exist!");
-        }
+  const handleDecreaseQuantity = (item) => {
+    const currentQuantity = quantities[item.id] || 1;
+    const newQuantity = currentQuantity - 1;
 
-        const currentStock = itemDoc.data().stock;
-        if (currentStock < 1) {
-          throw new Error(`No more items available in stock.`);
-        }
-
-        transaction.update(itemRef, { stock: currentStock - 1 });
-      });
-
+    if (newQuantity > 0) {
       setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
       updateCartItemQuantity(item.id, newQuantity);
-      setInitialQuantities((prev) => ({ ...prev, [item.id]: (prev[item.id] || 0) + 1 }));
-    } catch (error) {
-      toast.error(error.message);
-    }
-  };
-
-  const handleDecreaseQuantity = async (item) => {
-    const currentQuantity = quantities[item.id] || 0;
-    const newQuantity = currentQuantity - 1;
-    const initialQuantity = initialQuantities[item.id] || 0;
-
-    try {
-      await runTransaction(db, async (transaction) => {
-        const itemRef = doc(db, "items", item.id);
-        const itemDoc = await transaction.get(itemRef);
-        
-        if (!itemDoc.exists()) {
-          throw new Error("Item does not exist!");
-        }
-
-        const currentStock = itemDoc.data().stock;
-        
-        // Only increase stock if we're decreasing from the initial added quantity
-        if (currentQuantity <= initialQuantity) {
-          transaction.update(itemRef, { stock: currentStock + 1 });
-        }
+    } else {
+      setQuantities((prev) => {
+        const { [item.id]: _, ...rest } = prev;
+        return rest;
       });
-
-      if (newQuantity > 0) {
-        setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
-        updateCartItemQuantity(item.id, newQuantity);
-      } else {
-        setQuantities((prev) => {
-          const { [item.id]: _, ...rest } = prev;
-          return rest;
-        });
-        setAddedItems((prev) => {
-          const { [item.id]: _, ...rest } = prev;
-          return rest;
-        });
-        setInitialQuantities((prev) => {
-          const { [item.id]: _, ...rest } = prev;
-          return rest;
-        });
-        updateCartItemQuantity(item.id, 0);
-      }
-    } catch (error) {
-      toast.error(error.message);
+      setAddedItems((prev) => {
+        const { [item.id]: _, ...rest } = prev;
+        return rest;
+      });
+      updateCartItemQuantity(item.id, 0);
     }
   };
 
@@ -216,35 +145,6 @@ const Tuckshop = () => {
       setSortedItems(items);
     } else {
       setSortedItems(items.filter((item) => item.category === category));
-    }
-  };
-
-  const placeOrder = async () => {
-    if (!user) {
-      toast.error("Please log in to place an order");
-      return;
-    }
-
-    try {
-      const orderRef = await addDoc(collection(db, "orders"), {
-        userEmail: user.email,
-        items: cart.map(item => ({
-          id: item.id,
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        status: "pending",
-        transactionAmount: cart.reduce((total, item) => total + item.price * item.quantity, 0),
-        createdAt: serverTimestamp(),
-        processed: false
-      });
-
-      toast.success("Order placed successfully!");
-      navigate("/orders");
-    } catch (error) {
-      console.error("Error placing order:", error);
-      toast.error(`Failed to place order: ${error.message}`);
     }
   };
 
