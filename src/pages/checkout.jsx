@@ -82,17 +82,16 @@ const Checkout = () => {
           transactionAmount,
           status: false,
           userEmail: user.email,
+          processed: false, // Add this field to track if the order has been processed
         };
 
         const ordersRef = collection(db, "orders");
         const newOrderRef = doc(ordersRef);
         transaction.set(newOrderRef, orderData);
 
-        // Update user data
+        // Update user data (only add the order ID, don't deduct balance)
         transaction.update(userRef, {
           orders: arrayUnion(newOrderRef.id),
-          balance: increment(-transactionAmount),
-          transactionAmount: increment(transactionAmount)
         });
       });
 
