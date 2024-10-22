@@ -99,33 +99,75 @@ const Tuckshop = () => {
     setAddedItems(cartQuantities);
   }, [cart]);
 
-  const handleAddToCart = (item) => {
+  const handleAddToCart = async (item) => {
     const quantity = quantities[item.id] || 1;
     if (quantity > item.stock) {
       toast.error(`Only ${item.stock} items available in stock.`);
       return;
     }
-    addToCart({ ...item, quantity });
+    
+    // Update the stock in Firestore
+    const itemRef = doc(db, "items", item.id);
+    const newStock = item.stock - quantity;
+    await updateDoc(itemRef, { stock: newStock });
+
+    // Update local state
+    setItems(prevItems => 
+      prevItems.map(i => i.id === item.id ? { ...i, stock: newStock } : i)
+    );
+    setSortedItems(prevItems => 
+      prevItems.map(i => i.id === item.id ? { ...i, stock: newStock } : i)
+    );
+
+    // Add to cart
+    addToCart({ ...item, quantity, stock: newStock });
     setQuantities((prev) => ({ ...prev, [item.id]: quantity }));
     setAddedItems((prev) => ({ ...prev, [item.id]: true }));
   };
 
-  const handleIncreaseQuantity = (item) => {
+  const handleIncreaseQuantity = async (item) => {
     const newQuantity = (quantities[item.id] || 1) + 1;
     if (newQuantity > item.stock) {
       return;
     }
+
+    // Update the stock in Firestore
+    const itemRef = doc(db, "items", item.id);
+    const newStock = item.stock - 1;
+    await updateDoc(itemRef, { stock: newStock });
+
+    // Update local state
+    setItems(prevItems => 
+      prevItems.map(i => i.id === item.id ? { ...i, stock: newStock } : i)
+    );
+    setSortedItems(prevItems => 
+      prevItems.map(i => i.id === item.id ? { ...i, stock: newStock } : i)
+    );
+
     setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
-    updateCartItemQuantity(item.id, newQuantity);
+    updateCartItemQuantity(item.id, newQuantity, newStock);
   };
 
-  const handleDecreaseQuantity = (item) => {
+  const handleDecreaseQuantity = async (item) => {
     const currentQuantity = quantities[item.id] || 1;
     const newQuantity = currentQuantity - 1;
 
+    // Update the stock in Firestore
+    const itemRef = doc(db, "items", item.id);
+    const newStock = item.stock + 1;
+    await updateDoc(itemRef, { stock: newStock });
+
+    // Update local state
+    setItems(prevItems => 
+      prevItems.map(i => i.id === item.id ? { ...i, stock: newStock } : i)
+    );
+    setSortedItems(prevItems => 
+      prevItems.map(i => i.id === item.id ? { ...i, stock: newStock } : i)
+    );
+
     if (newQuantity > 0) {
       setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
-      updateCartItemQuantity(item.id, newQuantity);
+      updateCartItemQuantity(item.id, newQuantity, newStock);
     } else {
       setQuantities((prev) => {
         const { [item.id]: _, ...rest } = prev;
@@ -135,7 +177,7 @@ const Tuckshop = () => {
         const { [item.id]: _, ...rest } = prev;
         return rest;
       });
-      updateCartItemQuantity(item.id, 0);
+      updateCartItemQuantity(item.id, 0, newStock);
     }
   };
 
