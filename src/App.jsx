@@ -8,19 +8,20 @@ import {
 } from "firebase/auth";
 import { ToastContainer, toast } from "react-toastify";
 import { doc, setDoc } from "firebase/firestore/lite";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
+import { useUser } from "./UserContext";
 
-const boarderEmails = ["akshashidhar@cisb.org.in", "mrsanjay2709@gmail.com"];
+const boarderEmails = ["akshashidhar@cisb.org.in", "mrsanjay2709@gmail.com", "saketgupta.rkl@gmail.com"];
 
 function App() {
+  const { user, loading } = useUser();
   const [isFormVisible, setFormVisible] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
-  const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
 
   const navigate = useNavigate();
@@ -43,7 +44,6 @@ function App() {
       toast.error("Passwords do not match.");
       return;
     }
-    setLoading(true);
     setLoadingMessage("Creating account...");
     try {
       const userCredential = await createUserWithEmailAndPassword(
@@ -72,14 +72,11 @@ function App() {
     } catch (error) {
       console.error("Error creating account:", error);
       toast.error("Error creating account. Please try again.");
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleModalSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setLoadingMessage("Letting you in...");
     try {
       const userCredential = await signInWithEmailAndPassword(
@@ -99,10 +96,16 @@ function App() {
     } catch (error) {
       console.error("Error logging in:", error);
       toast.error("Error logging in. Please try again.");
-    } finally {
-      setLoading(false);
     }
   };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (user) {
+    return <Navigate to="/tuckshop" />;
+  }
 
   return (
     <div

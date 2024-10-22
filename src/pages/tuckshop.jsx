@@ -1,94 +1,33 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../fireconfig";
-import { collection, getDocs, query, where, updateDoc, doc, getDoc } from "firebase/firestore/lite";
+import { collection, getDocs } from "firebase/firestore/lite";
 import { useUser } from "../UserContext";
 import Header from "../components/Header.jsx";
 import { useCart } from "../CartContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
-const POLL_INTERVAL = 3000;
-
 const Tuckshop = () => {
-  const { user, updateBalance } = useUser();
+  const { user, loading } = useUser();
   const { cart, addToCart, updateCartItemQuantity } = useCart();
   const [items, setItems] = useState([]);
   const [quantities, setQuantities] = useState({});
   const [addedItems, setAddedItems] = useState({});
   const [sortedItems, setSortedItems] = useState([]);
   const [category, setCategory] = useState("all");
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) {
-      navigate("/");
-    }
-  }, [user, navigate]);
-
-  useEffect(() => {
-    console.log("Firestore instance:", db);
     const fetchItems = async () => {
-      try {
-        const itemsCollection = collection(db, "items");
-        const itemsSnapshot = await getDocs(itemsCollection);
-        const itemsData = itemsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setItems(itemsData);
-        setSortedItems(itemsData);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching items:", error);
-        setLoading(false);
-      }
+      const itemsCollection = collection(db, "items");
+      const itemsSnapshot = await getDocs(itemsCollection);
+      const itemsList = itemsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setItems(itemsList);
+      setSortedItems(itemsList);
     };
 
     fetchItems();
-
-    const intervalId = setInterval(fetchItems, POLL_INTERVAL);
-
-    return () => clearInterval(intervalId);
   }, []);
-
-  useEffect(() => {
-    const checkCompletedOrders = async () => {
-      if (user) {
-        const ordersRef = collection(db, "orders");
-        const q = query(ordersRef, where("userEmail", "==", user.email), where("status", "==", true), where("processed", "==", false));
-        const querySnapshot = await getDocs(q);
-        
-        for (const docSnapshot of querySnapshot.docs) {
-          const orderData = docSnapshot.data();
-          const userRef = doc(db, "users", user.email);
-          const userDoc = await getDoc(userRef);
-          
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            
-            if (userData.balance >= orderData.transactionAmount) {
-              const newBalance = userData.balance - orderData.transactionAmount;
-              await updateDoc(userRef, {
-                balance: newBalance,
-                transactions: [...userData.transactions, {
-                  type: "debit",
-                  amount: orderData.transactionAmount,
-                  date: new Date().toISOString(),
-                  orderId: docSnapshot.id
-                }]
-              });
-              
-              await updateDoc(docSnapshot.ref, { processed: true });
-              updateBalance(newBalance);
-            }
-          }
-        }
-      }
-    };
-
-    checkCompletedOrders();
-  }, [user, updateBalance]);
 
   useEffect(() => {
     const cartQuantities = cart.reduce((acc, item) => {
@@ -99,75 +38,36 @@ const Tuckshop = () => {
     setAddedItems(cartQuantities);
   }, [cart]);
 
-  const handleAddToCart = async (item) => {
+  const handleAddToCart = (item) => {
     const quantity = quantities[item.id] || 1;
     if (quantity > item.stock) {
       toast.error(`Only ${item.stock} items available in stock.`);
       return;
     }
     
-    // Update the stock in Firestore
-    const itemRef = doc(db, "items", item.id);
-    const newStock = item.stock - quantity;
-    await updateDoc(itemRef, { stock: newStock });
-
-    // Update local state
-    setItems(prevItems => 
-      prevItems.map(i => i.id === item.id ? { ...i, stock: newStock } : i)
-    );
-    setSortedItems(prevItems => 
-      prevItems.map(i => i.id === item.id ? { ...i, stock: newStock } : i)
-    );
-
-    // Add to cart
-    addToCart({ ...item, quantity, stock: newStock });
+    addToCart({ ...item, quantity });
     setQuantities((prev) => ({ ...prev, [item.id]: quantity }));
     setAddedItems((prev) => ({ ...prev, [item.id]: true }));
   };
 
-  const handleIncreaseQuantity = async (item) => {
+  const handleIncreaseQuantity = (item) => {
     const newQuantity = (quantities[item.id] || 1) + 1;
     if (newQuantity > item.stock) {
+      toast.error(`Only ${item.stock} items available in stock.`);
       return;
     }
 
-    // Update the stock in Firestore
-    const itemRef = doc(db, "items", item.id);
-    const newStock = item.stock - 1;
-    await updateDoc(itemRef, { stock: newStock });
-
-    // Update local state
-    setItems(prevItems => 
-      prevItems.map(i => i.id === item.id ? { ...i, stock: newStock } : i)
-    );
-    setSortedItems(prevItems => 
-      prevItems.map(i => i.id === item.id ? { ...i, stock: newStock } : i)
-    );
-
     setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
-    updateCartItemQuantity(item.id, newQuantity, newStock);
+    updateCartItemQuantity(item.id, newQuantity);
   };
 
-  const handleDecreaseQuantity = async (item) => {
+  const handleDecreaseQuantity = (item) => {
     const currentQuantity = quantities[item.id] || 1;
     const newQuantity = currentQuantity - 1;
 
-    // Update the stock in Firestore
-    const itemRef = doc(db, "items", item.id);
-    const newStock = item.stock + 1;
-    await updateDoc(itemRef, { stock: newStock });
-
-    // Update local state
-    setItems(prevItems => 
-      prevItems.map(i => i.id === item.id ? { ...i, stock: newStock } : i)
-    );
-    setSortedItems(prevItems => 
-      prevItems.map(i => i.id === item.id ? { ...i, stock: newStock } : i)
-    );
-
     if (newQuantity > 0) {
       setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
-      updateCartItemQuantity(item.id, newQuantity, newStock);
+      updateCartItemQuantity(item.id, newQuantity);
     } else {
       setQuantities((prev) => {
         const { [item.id]: _, ...rest } = prev;
@@ -177,7 +77,7 @@ const Tuckshop = () => {
         const { [item.id]: _, ...rest } = prev;
         return rest;
       });
-      updateCartItemQuantity(item.id, 0, newStock);
+      updateCartItemQuantity(item.id, 0);
     }
   };
 
@@ -189,6 +89,19 @@ const Tuckshop = () => {
       setSortedItems(items.filter((item) => item.category === category));
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-gray-900">
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/" />;
+  }
 
   return (
     <div className="p-1">
@@ -264,10 +177,9 @@ const Tuckshop = () => {
           </button>
         </div>
         <div className="w-3/4 flex flex-col overflow-y-auto h-[calc(100vh-200px)]">
-          {loading ? (
+          {items.length === 0 ? (
             <div className="flex justify-center items-center h-full">
-              <div className="loader"></div>
-              <p className="ml-4 text-xl">Loading items...</p>
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-gray-900"></div>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-1 flex-grow mb-16">

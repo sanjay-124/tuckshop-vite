@@ -1,8 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { db } from './fireconfig';
-import { doc, getDoc, collection, query, where, getDocs, updateDoc, arrayUnion, runTransaction } from 'firebase/firestore/lite';
-import { onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore/lite';
 
 const UserContext = createContext();
 
@@ -10,6 +9,7 @@ export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [balance, setBalance] = useState(0);
   const [expense, setExpense] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const auth = getAuth();
@@ -22,61 +22,11 @@ export const UserProvider = ({ children }) => {
         setBalance(0);
         setExpense(0);
       }
+      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
-
-  useEffect(() => {
-    if (user) {
-      const ordersRef = collection(db, "orders");
-      const q = query(ordersRef, 
-        where("userEmail", "==", user.email), 
-        where("status", "==", true), 
-        where("processed", "==", false)
-      );
-
-      const unsubscribe = onSnapshot(q, async (snapshot) => {
-        for (const change of snapshot.docChanges()) {
-          if (change.type === "added" || change.type === "modified") {
-            const orderData = change.doc.data();
-            
-            try {
-              await runTransaction(db, async (transaction) => {
-                const userRef = doc(db, "users", user.email);
-                const userDoc = await transaction.get(userRef);
-                
-                if (userDoc.exists()) {
-                  const userData = userDoc.data();
-                  const newBalance = userData.balance - orderData.transactionAmount;
-                  
-                  transaction.update(userRef, {
-                    balance: newBalance,
-                    transactions: arrayUnion({
-                      type: "debit",
-                      amount: orderData.transactionAmount,
-                      date: new Date().toISOString(),
-                      orderId: change.doc.id
-                    })
-                  });
-
-                  // Mark the order as processed
-                  transaction.update(change.doc.ref, { processed: true });
-                }
-              });
-
-              // Update local state
-              await updateUserData(user.email);
-            } catch (error) {
-              console.error("Error processing order:", error);
-            }
-          }
-        }
-      });
-
-      return () => unsubscribe();
-    }
-  }, [user]);
 
   const updateUserData = async (email) => {
     try {
@@ -125,7 +75,7 @@ export const UserProvider = ({ children }) => {
   };
 
   return (
-    <UserContext.Provider value={{ user, setUser, balance, expense, updateBalance, logout, updateUserData }}>
+    <UserContext.Provider value={{ user, setUser, balance, expense, updateBalance, logout, updateUserData, loading }}>
       {children}
     </UserContext.Provider>
   );
@@ -138,4 +88,3 @@ export const useUser = () => {
   }
   return context;
 };
-

@@ -18,43 +18,34 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
   }, [cart]);
 
-  const addToCart = async (item) => {
+  const addToCart = (item) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
       if (existingItem) {
         return prevCart.map((cartItem) =>
           cartItem.id === item.id
-            ? { ...cartItem, quantity: Math.min(cartItem.quantity + item.quantity, item.stock), stock: item.stock }
+            ? { ...cartItem, quantity: cartItem.quantity + item.quantity }
             : cartItem
-        ).filter(cartItem => cartItem.quantity > 0);
+        );
       } else {
-        return item.quantity > 0 ? [...prevCart, { ...item, quantity: Math.min(item.quantity, item.stock) }] : prevCart;
+        return [...prevCart, { ...item }];
       }
     });
   };
 
-  const updateCartItemQuantity = async (itemId, quantity, newStock) => {
+  const updateCartItemQuantity = (itemId, quantity) => {
     setCart((prevCart) =>
       prevCart.map((item) =>
-        item.id === itemId ? { ...item, quantity: Math.min(quantity, newStock), stock: newStock } : item
+        item.id === itemId ? { ...item, quantity } : item
       ).filter(item => item.quantity > 0)
     );
   };
 
-  const removeFromCart = async (itemId) => {
-    const itemToRemove = cart.find(item => item.id === itemId);
-    if (itemToRemove) {
-      const itemRef = doc(db, "items", itemId);
-      await updateDoc(itemRef, { stock: itemToRemove.stock + itemToRemove.quantity });
-    }
+  const removeFromCart = (itemId) => {
     setCart((prevCart) => prevCart.filter((item) => item.id !== itemId));
   };
 
-  const clearCart = async () => {
-    for (const item of cart) {
-      const itemRef = doc(db, "items", item.id);
-      await updateDoc(itemRef, { stock: item.stock + item.quantity });
-    }
+  const clearCart = () => {
     setCart([]);
   };
 
