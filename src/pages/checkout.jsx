@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../fireconfig";
-import { doc, updateDoc, arrayUnion, collection, addDoc, getDoc, increment, runTransaction } from "firebase/firestore/lite";
+import { doc, updateDoc, arrayUnion, collection, addDoc, getDoc, increment, runTransaction, serverTimestamp } from "firebase/firestore/lite";
 import { useUser } from "../UserContext";
 import { useCart } from "../CartContext";
 import { ToastContainer, toast } from "react-toastify";
@@ -35,7 +35,7 @@ const Checkout = () => {
 
     try {
       await runTransaction(db, async (transaction) => {
-        // Fetch the latest user balance from Firestore
+        // Perform all reads first
         const userRef = doc(db, "users", user.email);
         const userSnapshot = await transaction.get(userRef);
 
@@ -50,26 +50,30 @@ const Checkout = () => {
           throw new Error("Insufficient balance.");
         }
 
-        // Check and update stock for each item
-        for (const item of filteredCart) {
-          const itemRef = doc(db, "items", item.id);
-          const itemSnapshot = await transaction.get(itemRef);
+        // Check stock and get item data for each item
+        const itemSnapshots = await Promise.all(
+          filteredCart.map(item => transaction.get(doc(db, "items", item.id)))
+        );
 
-          if (!itemSnapshot.exists()) {
-            throw new Error(`Item ${item.name} not found.`);
+        const itemsData = itemSnapshots.map((snapshot, index) => {
+          if (!snapshot.exists()) {
+            throw new Error(`Item ${filteredCart[index].name} not found.`);
           }
-
-          const itemData = itemSnapshot.data();
-          if (itemData.stock < item.quantity) {
-            throw new Error(`Not enough stock for ${item.name}. Available: ${itemData.stock}`);
+          const itemData = snapshot.data();
+          if (itemData.stock < filteredCart[index].quantity) {
+            throw new Error(`Not enough stock for ${filteredCart[index].name}. Available: ${itemData.stock}`);
           }
+          return { ...itemData, id: snapshot.id };
+        });
 
-          // Update stock
-          transaction.update(itemRef, {
-            stock: increment(-item.quantity)
-          });
-        }
+        // Get stock documents
+        const stockSnapshots = await Promise.all(
+          filteredCart.map(item => transaction.get(doc(db, "stocks", item.id)))
+        );
 
+        let missingCostPriceItems = [];
+
+        // Now perform all writes
         // Create the order
         const orderData = {
           timestamp: new Date().toISOString(),
@@ -87,6 +91,52 @@ const Checkout = () => {
         const ordersRef = collection(db, "orders");
         const newOrderRef = doc(ordersRef);
         transaction.set(newOrderRef, orderData);
+
+        // Update stocks collection and item stock
+        filteredCart.forEach((cartItem, index) => {
+          const stockRef = doc(db, "stocks", cartItem.id);
+          const stockSnapshot = stockSnapshots[index];
+          const itemData = itemsData[index];
+          const itemRef = doc(db, "items", cartItem.id);
+
+          const currentStockSold = stockSnapshot.exists() ? stockSnapshot.data().stockSold || 0 : 0;
+          const newStockSold = currentStockSold + cartItem.quantity;
+          const profitPerItem = itemData.price - itemData.costPrice;
+          const newProfit = profitPerItem * newStockSold;
+
+          const stockData = {
+            itemId: doc(db, "items", cartItem.id),
+            itemName: itemData.name,
+            stockSold: newStockSold,
+            lastUpdated: serverTimestamp(),
+            profit: newProfit
+          };
+
+          if (stockSnapshot.exists()) {
+            transaction.update(stockRef, stockData);
+          } else {
+            transaction.set(stockRef, stockData);
+          }
+
+          // Update item stock
+          transaction.update(itemRef, {
+            stock: increment(-cartItem.quantity)
+          });
+
+          console.log(`Item: ${itemData.name}`);
+          console.log(`Selling Price: ${itemData.price}`);
+          console.log(`Cost Price: ${itemData.costPrice}`);
+          console.log(`Quantity Sold in this order: ${cartItem.quantity}`);
+          console.log(`Total Stock Sold: ${newStockSold}`);
+          console.log(`Profit Per Item: ${profitPerItem}`);
+          console.log(`Total Profit: ${newProfit}`);
+          console.log('-------------------');
+        });
+
+        if (missingCostPriceItems.length > 0) {
+          console.warn(`Warning: Cost price is missing for the following items: ${missingCostPriceItems.join(', ')}`);
+          // You might want to send this information to an admin or log it for later review
+        }
 
         // Update user data
         transaction.update(userRef, {
@@ -109,6 +159,23 @@ const Checkout = () => {
       toast.error(error.message || "Error placing order. Please try again.");
       setLoading(false);
     }
+  };
+
+  const getStockWithPrices = async (stockId) => {
+    const stockDoc = await getDoc(doc(db, "stocks", stockId));
+    if (stockDoc.exists()) {
+      const stockData = stockDoc.data();
+      const itemDoc = await getDoc(stockData.itemId);
+      if (itemDoc.exists()) {
+        const itemData = itemDoc.data();
+        return {
+          ...stockData,
+          price: itemData.price,
+          costPrice: itemData.costPrice,
+        };
+      }
+    }
+    return null;
   };
 
   return (

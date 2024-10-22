@@ -196,7 +196,7 @@ const Tuckshop = () => {
                   />
                 </div>
                 <h3 className="text-md font-medium">{item.name}</h3>
-                <p>Stock: {item.stock}</p>
+                <p className="text-[12px]">Stock: {item.stock}</p>
                 <div className="flex items-center justify-between w-full mt-2">
                   <span className="text-lg font-bold text-gray-700">
                     ₹{item.price}
