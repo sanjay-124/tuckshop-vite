@@ -1,16 +1,16 @@
 import React, { useState } from "react";
-import "./App.css";
+import { motion } from "framer-motion";
+import { useNavigate, Navigate } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { useUser } from "./UserContext";
 import { auth, db } from "./fireconfig";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
-import { ToastContainer, toast } from "react-toastify";
 import { doc, setDoc } from "firebase/firestore/lite";
-import { useNavigate, Navigate } from "react-router-dom";
-import "react-toastify/dist/ReactToastify.css";
-import { useUser } from "./UserContext";
 
 const boarderEmails = ["akshashidhar@cisb.org.in", "mrsanjay2709@gmail.com", "saketgupta.rkl@gmail.com"];
 
@@ -23,16 +23,10 @@ function App() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [loadingMessage, setLoadingMessage] = useState("");
-
   const navigate = useNavigate();
 
-  const handleCreateAccountClick = () => {
-    setFormVisible(!isFormVisible);
-  };
-
-  const handleShopNowClick = () => {
-    setModalVisible(true);
-  };
+  const handleCreateAccountClick = () => setFormVisible(!isFormVisible);
+  const handleShopNowClick = () => setModalVisible(true);
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
@@ -46,15 +40,9 @@ function App() {
     }
     setLoadingMessage("Creating account...");
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
       await updateProfile(user, { displayName: name });
-
       const userData = {
         name: name,
         balance: 800,
@@ -62,7 +50,6 @@ function App() {
         orders: []
       };
       await setDoc(doc(db, "users", email), userData);
-
       setEmail("");
       setPassword("");
       setConfirmPassword("");
@@ -79,19 +66,13 @@ function App() {
     e.preventDefault();
     setLoadingMessage("Letting you in...");
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
       localStorage.setItem('user', JSON.stringify({
         uid: user.uid,
         email: user.email,
         displayName: user.displayName
       }));
-
       navigate("/tuckshop");
     } catch (error) {
       console.error("Error logging in:", error);
@@ -99,185 +80,231 @@ function App() {
     }
   };
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (user) {
-    return <Navigate to="/tuckshop" />;
-  }
+  if (loading) return <div>Loading...</div>;
+  if (user) return <Navigate to="/tuckshop" />;
 
   return (
-    <div
-      className="relative bg-cover bg-center bg-no-repeat w-full h-screen"
-      style={{ backgroundImage: "url('./bg.jpg')", zIndex: 1 }}
-    >
+    <div className="relative w-full min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       <ToastContainer />
-      <div
-        className="absolute top-10 w-full bg-[#7E7F80] h-[60px] flex items-center justify-center"
-        style={{ zIndex: 2 }}
+      
+      <motion.header 
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        className="absolute top-0 w-full bg-white/80 backdrop-blur-md shadow-lg h-16 flex items-center justify-between px-6"
       >
-        <p className="italic text-white text-2xl text-center">
-          Managed by Boarding, Canadian International School
-        </p>
-      </div>
-      <div
-        className="relative mx-auto flex max-w-3xl flex-col items-center py-32 px-6 text-center sm:py-64 lg:px-0"
-        style={{ zIndex: 2 }}
-      >
-        <h1 className="text-6xl font-bold text-[#11b682]">TUCKSHOP IS HERE</h1>
-        <p className="mt-4 text-2xl font-bold text-black">
-          The new arrivals have, well, newly arrived. Check out the latest
-          options from our tuckshop while they're still in stock.
-        </p>
-        <button
-          className="bg-[#11b682] text-white mt-6 py-2 px-4 rounded-lg"
-          onClick={handleShopNowClick}
+        <motion.h1 
+          className="text-2xl font-bold bg-gradient-to-r from-blue-300 to-purple-400 bg-clip-text text-transparent"
+          initial={{ opacity: 0.4 }}
+          animate={{ opacity: 1 }}
         >
-          Shop Now
-        </button>
-        <button
-          className="bg-[#11b682] text-white mt-6 py-2 px-4 rounded-lg"
-          onClick={handleCreateAccountClick}
-          style={{ zIndex: 2 }}
-        >
-          Create an Account
-        </button>
-      </div>
-      {isFormVisible && (
-        <div
-          className="absolute inset-0 bg-white bg-opacity-95 flex items-center justify-center"
-          style={{ zIndex: 3 }}
-        >
-          <button
-            className="absolute top-2 right-2 text-gray-900 text-4xl"
-            onClick={() => setFormVisible(false)}
-            style={{ padding: "0.5rem" }}
+          CIS
+        </motion.h1>
+        <motion.div 
+          className="flex gap-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        />
+      </motion.header>
+
+      <main className="relative pt-32 px-6 pb-20">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-12"
           >
-            &times;
-          </button>
-          <form onSubmit={handleFormSubmit}>
-            <div className="mb-4">
-              <label htmlFor="name" className="block text-gray-700">
-                Name:
-              </label>
-              <input
-                type="text"
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="border border-gray-300 p-2 rounded w-full"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="email" className="block text-gray-700">
-                Email:
-              </label>
-              <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="border border-gray-300 p-2 rounded w-full"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="password" className="block text-gray-700">
-                Password:
-              </label>
-              <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="border border-gray-300 p-2 rounded w-full"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="confirmPassword" className="block text-gray-700">
-                Confirm Password:
-              </label>
-              <input
-                type="password"
-                id="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="border border-gray-300 p-2 rounded w-full"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="bg-[#11b682] text-white py-2 px-4 rounded-lg w-full"
+            <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Your One-Stop TuckShop
+            </h2>
+            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+              Discover delicious treats and satisfy your cravings with our carefully curated selection
+            </p>
+          </motion.div>
+
+          <motion.div 
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-[130px] sm:w-auto px-2 py-2 bg-gradient-to-r from-blue-100 to-purple-200 text-black rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
+              onClick={handleShopNowClick}
+            >
+              Log In
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-[150px] sm:w-auto px-2 py-2 bg-gradient-to-r from-blue-100 to-purple-200 text-gray-800 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all border border-gray-200"
+              onClick={handleCreateAccountClick}
             >
               Sign Up
-            </button>
-          </form>
-          {loading && (
-            <div className="absolute inset-0 bg-white bg-opacity-75 flex flex-col items-center justify-center">
-              <div className="loader"></div>
-              <p className="mt-4 text-gray-700">{loadingMessage}</p>
-            </div>
-          )}
-        </div>
-      )}
-      {isModalVisible && (
-        <div
-          className="absolute inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center"
-          style={{ zIndex: 3 }}
-        >
-          <div className="bg-white p-8 rounded shadow-lg w-80 relative">
-            <button
-              className="absolute top-2 right-2 text-4xl text-gray-900"
-              onClick={() => setModalVisible(false)}
-            >
-              &times;
-            </button>
-            <form onSubmit={handleModalSubmit}>
-              <div className="mb-4">
-                <label htmlFor="email" className="block text-gray-700">
-                  Email:
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="border border-gray-300 p-2 rounded w-full"
-                  required
-                />
+            </motion.button>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="mt-12"
+          >
+            <div className="grid grid-cols-2 gap-2 max-w-3xl mx-auto">
+              <div className="flex flex-col items-center">
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">Snacks</h3>
+                <img src={`/images/snacks.jpg`} className="w-[80%] h-[65%] object-cover rounded-lg mb-4" alt="Snacks" />
               </div>
-              <div className="mb-4">
-                <label htmlFor="password" className="block text-gray-700">
-                  Password:
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="border border-gray-300 p-2 rounded w-full"
-                  required
-                />
+
+              <div className="flex flex-col items-center">
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">Drinks</h3>
+                <img src={`/images/drinks.jpg`} className="w-[80%] h-[65%] object-cover rounded-lg mb-4" alt="Drinks" />
+              </div>
+
+              <div className="flex flex-col items-center">
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">Chocolates</h3>
+                <img src={`/images/chocolates.webp`} className="w-[80%] h-[50%] object-cover rounded-lg mb-4" alt="Chocolates" />
+              </div>
+
+              <div className="flex flex-col items-center">
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">Ice Creams</h3>
+                <img src={`/images/icecreams.jpg`} className="w-[80%] h-[50%] object-cover rounded-lg mb-4" alt="Ice Creams" />
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </main>
+
+      {isFormVisible && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full relative"
+          >
+            <button
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+              onClick={() => setFormVisible(false)}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Create an Account</h2>
+            <form onSubmit={handleFormSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
               </div>
               <button
                 type="submit"
-                className="bg-[#11b682] text-white py-2 px-4 rounded-lg w-full"
+                className="w-full mt-6 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+              >
+                Sign Up
+              </button>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {isModalVisible && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full relative"
+          >
+            <button
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+              onClick={() => setModalVisible(false)}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Log In</h2>
+            <form onSubmit={handleModalSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                className="w-full mt-6 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
               >
                 Log In
               </button>
             </form>
-            {loading && (
-              <div className="absolute inset-0 bg-white bg-opacity-75 flex flex-col items-center justify-center">
-                <div className="loader"></div>
-                <p className="mt-4 text-gray-700">{loadingMessage}</p>
-              </div>
-            )}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
     </div>
   );
