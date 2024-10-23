@@ -121,13 +121,13 @@ const Tuckshop = () => {
         <div className="w-1/4 mr-1 text-sm border-r border-gray-300 pr-1 flex flex-col items-center space-y-2 overflow-y-auto h-[calc(100vh-200px)]">
           <button
             onClick={() => handleSort("all")}
-            className="w-20 h-20 flex items-center justify-center bg-gray-200 rounded-md"
+            className="w-20 h-20 flex items-center justify-center bg-gradient-to-r from-blue-100 to-purple-200 rounded-md"
           >
             All
           </button>
           <button
             onClick={() => handleSort("beverages")}
-            className="w-20 h-20 flex flex-col items-center justify-center bg-gray-200 rounded-md"
+            className="w-20 h-20 flex flex-col items-center justify-center bg-gradient-to-r from-blue-100 to-purple-200 rounded-md"
           >
             <img
               src="/images/beverages.avif"
@@ -138,7 +138,7 @@ const Tuckshop = () => {
           </button>
           <button
             onClick={() => handleSort("icecream")}
-            className="w-20 h-20 flex flex-col items-center justify-center bg-gray-200 rounded-md"
+            className="w-20 h-20 flex flex-col items-center justify-center bg-gradient-to-r from-blue-100 to-purple-200 rounded-md"
           >
             <img
               src="/images/icecreams.avif"
@@ -149,7 +149,7 @@ const Tuckshop = () => {
           </button>
           <button
             onClick={() => handleSort("chocolate")}
-            className="w-20 h-20 flex flex-col items-center justify-center bg-gray-200 rounded-md"
+            className="w-20 h-20 flex flex-col items-center justify-center bg-gradient-to-r from-blue-100 to-purple-200 rounded-md"
           >
             <img
               src="/images/chocolates.avif"
@@ -160,7 +160,7 @@ const Tuckshop = () => {
           </button>
           <button
             onClick={() => handleSort("snacks")}
-            className="w-20 h-20 flex flex-col items-center justify-center bg-gray-200 rounded-md"
+            className="w-20 h-20 flex flex-col items-center justify-center bg-gradient-to-r from-blue-100 to-purple-200 rounded-md"
           >
             <img
               src="/images/snacks.avif"
@@ -171,7 +171,7 @@ const Tuckshop = () => {
           </button>
           <button
             onClick={() => handleSort("others")}
-            className="w-20 h-20 flex items-center justify-center bg-gray-200 rounded-md"
+            className="w-20 h-20 flex items-center justify-center bg-gradient-to-r from-blue-100 to-purple-200 rounded-md"
           >
             Others
           </button>
@@ -222,7 +222,7 @@ const Tuckshop = () => {
                       </div>
                     ) : (
                       <button
-                        className="bg-gray-200 text-black rounded-md px-2 py-1"
+                        className="bg-gradient-to-r from-blue-100 to-purple-200 text-black rounded-md px-2 py-1"
                         onClick={() => handleAddToCart(item)}
                       >
                         Add
@@ -244,7 +244,7 @@ const Tuckshop = () => {
       </div>
       <div className="fixed bottom-0 left-0 w-full bg-white p-2 border-t border-gray-300 flex justify-center">
         <button
-          className="bg-emerald-600 font-semibold text-white rounded-md py-2 px-6 hover:bg-green-600 focus:outline-none transition-all duration-300"
+          className="bg-gradient-to-r from-blue-400 via-purple-300 to-pink-400 font-semibold text-black rounded-md py-2 px-6 hover:bg-green-600 focus:outline-none transition-all duration-300"
           onClick={() => navigate("/checkout")}
         >
           {cart.reduce((total, item) => total + item.quantity, 0)} Items | ₹{cart.reduce((total, item) => total + item.price * item.quantity, 0)}
