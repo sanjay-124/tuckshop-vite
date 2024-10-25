@@ -1,15 +1,25 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../fireconfig";
-import { doc, updateDoc, arrayUnion, collection, addDoc, getDoc, increment, runTransaction, serverTimestamp } from "firebase/firestore/lite";
+import { 
+  doc, 
+  updateDoc, 
+  arrayUnion, 
+  collection, 
+  addDoc,
+  getDoc, 
+  increment, 
+  runTransaction, 
+  serverTimestamp 
+} from "firebase/firestore";
 import { useUser } from "../UserContext";
 import { useCart } from "../CartContext";
 import { ToastContainer, toast } from "react-toastify";
-import { FaArrowLeft, FaPlus, FaMinus, FaTrash } from "react-icons/fa";
+import { FaArrowLeft, FaMinus, FaPlus, FaTrash } from "react-icons/fa";
 
 const Checkout = () => {
   const { user, updateUserData } = useUser();
-  const { cart, clearCart, updateCart } = useCart();
+  const { cart, clearCart, updateCartItemQuantity, removeFromCart } = useCart();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
@@ -37,18 +47,29 @@ const Checkout = () => {
       await runTransaction(db, async (transaction) => {
         // Perform all reads first
         const userRef = doc(db, "users", user.email);
-        const userSnapshot = await transaction.get(userRef);
+        const userDoc = await transaction.get(userRef);
 
-        if (!userSnapshot.exists()) {
-          throw new Error("User data not found.");
+        // Check if user exists, if not, create a new user document
+        if (!userDoc.exists()) {
+          transaction.set(userRef, {
+            email: user.email,
+            name: user.displayName || '',
+            orders: [],
+            balance: 0,
+            transactionAmount: 0
+          });
         }
 
-        const userData = userSnapshot.data();
+        // Add balance check and update
+        const userData = userDoc.data();
         const currentBalance = userData.balance || 0;
+        const currentTransactionAmount = userData.transactionAmount || 0;
 
         if (currentBalance < transactionAmount) {
-          throw new Error("Insufficient balance.");
+          throw new Error("Insufficient balance to place the order.");
         }
+
+        // Remove the balance check since we're not updating the balance here
 
         // Check stock and get item data for each item
         const itemSnapshots = await Promise.all(
@@ -86,6 +107,7 @@ const Checkout = () => {
           transactionAmount,
           status: false,
           userEmail: user.email,
+          processed: false, // Add this field to track if the order has been processed
         };
 
         const ordersRef = collection(db, "orders");
@@ -138,7 +160,7 @@ const Checkout = () => {
           // You might want to send this information to an admin or log it for later review
         }
 
-        // Update user data
+        // Update user data - add the order to the user's orders array and update balance and transactionAmount
         transaction.update(userRef, {
           orders: arrayUnion(newOrderRef.id),
           balance: increment(-transactionAmount),
@@ -178,20 +200,22 @@ const Checkout = () => {
     return null;
   };
 
-  const handleQuantityChange = (itemId, change) => {
-    const updatedCart = cart.map(item => {
-      if (item.id === itemId) {
-        const newQuantity = Math.max(0, item.quantity + change);
-        return { ...item, quantity: newQuantity };
-      }
-      return item;
-    });
-    updateCart(updatedCart);
+  const handleDecreaseQuantity = (itemId) => {
+    const item = cart.find((cartItem) => cartItem.id === itemId);
+    if (item && item.quantity > 1) {
+      updateCartItemQuantity(itemId, item.quantity - 1);
+    }
   };
 
-  const handleDeleteItem = (itemId) => {
-    const updatedCart = cart.filter(item => item.id !== itemId);
-    updateCart(updatedCart);
+  const handleIncreaseQuantity = (itemId) => {
+    const item = cart.find((cartItem) => cartItem.id === itemId);
+    if (item) {
+      updateCartItemQuantity(itemId, item.quantity + 1);
+    }
+  };
+
+  const handleRemoveItem = (itemId) => {
+    removeFromCart(itemId);
   };
 
   return (
@@ -224,22 +248,22 @@ const Checkout = () => {
                   <span>{item.name}</span>
                   <div className="flex items-center">
                     <button
-                      onClick={() => handleQuantityChange(item.id, -1)}
-                      className="bg-gray-200 rounded-full p-1 mr-2"
+                      onClick={() => handleDecreaseQuantity(item.id)}
+                      className="bg-gradient-to-r from-blue-100 to-purple-200 rounded-sm p-1 mr-2"
                     >
                       <FaMinus className="text-gray-600" />
                     </button>
-                    <span className="mx-2">{item.quantity}</span>
+                    <span>{item.quantity}</span>
                     <button
-                      onClick={() => handleQuantityChange(item.id, 1)}
-                      className="bg-gray-200 rounded-full p-1 ml-2"
+                      onClick={() => handleIncreaseQuantity(item.id)}
+                      className="bg-gradient-to-r from-blue-100 to-purple-200 rounded-sm p-1 ml-2 mr-4"
                     >
                       <FaPlus className="text-gray-600" />
                     </button>
-                    <span className="mx-4">x {item.price} = {item.quantity * item.price}</span>
+                    <span className="mx-12 text-md">₹{item.quantity * item.price}</span>
                     <button
-                      onClick={() => handleDeleteItem(item.id)}
-                      className="bg-red-500 text-white rounded-full p-1 ml-2"
+                      onClick={() => handleRemoveItem(item.id)}
+                      className="text-red-500"
                     >
                       <FaTrash />
                     </button>
@@ -256,7 +280,7 @@ const Checkout = () => {
                 Total Amount: ₹{cart.reduce((total, item) => total + item.price * item.quantity, 0)}
               </p>
               <button
-                className="bg-green-500 text-white rounded-md py-2 px-6 mt-4 hover:bg-green-600 focus:outline-none transition-all duration-300"
+                className="bg-gradient-to-r from-blue-400 via-purple-300 to-pink-400 text-white rounded-md py-2 px-6 mt-4 hover:bg-green-600 focus:outline-none transition-all duration-300"
                 onClick={handlePlaceOrder}
                 disabled={loading}
               >

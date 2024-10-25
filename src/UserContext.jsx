@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { db } from './fireconfig';
-import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore/lite';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 
 const UserContext = createContext();
 
@@ -9,7 +9,6 @@ export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [balance, setBalance] = useState(0);
   const [expense, setExpense] = useState(0);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const auth = getAuth();
@@ -22,7 +21,6 @@ export const UserProvider = ({ children }) => {
         setBalance(0);
         setExpense(0);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -35,15 +33,10 @@ export const UserProvider = ({ children }) => {
       if (userDoc.exists()) {
         const userData = userDoc.data();
         setBalance(userData.balance || 0);
-
-        const ordersRef = collection(db, "orders");
-        const q = query(ordersRef, where("userEmail", "==", email), where("status", "==", true));
-        const querySnapshot = await getDocs(q);
-        let totalExpense = 0;
-        querySnapshot.forEach((doc) => {
-          totalExpense += doc.data().statusAmount || 0;
-        });
-        setExpense(totalExpense);
+        setExpense(userData.transactionAmount || 0);
+      } else {
+        console.log("User document does not exist");
+        // You might want to create a user document here or handle this case appropriately
       }
     } catch (error) {
       console.error("Error updating user data:", error);
@@ -75,7 +68,7 @@ export const UserProvider = ({ children }) => {
   };
 
   return (
-    <UserContext.Provider value={{ user, setUser, balance, expense, updateBalance, logout, updateUserData, loading }}>
+    <UserContext.Provider value={{ user, setUser, balance, expense, updateBalance, logout, updateUserData }}>
       {children}
     </UserContext.Provider>
   );
