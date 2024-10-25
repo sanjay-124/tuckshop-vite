@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../fireconfig";
-import { collection, getDocs } from "firebase/firestore/lite";
+import { collection, getDocs } from "firebase/firestore";
 import { useUser } from "../UserContext";
 import Header from "../components/Header.jsx";
 import { useCart } from "../CartContext";
@@ -9,7 +9,7 @@ import { toast } from "react-toastify";
 
 const Tuckshop = () => {
   const { user, loading } = useUser();
-  const { cart, addToCart, updateCartItemQuantity } = useCart();
+  const { cart, addToCart, updateCartItemQuantity, stockUpdates } = useCart();
   const [items, setItems] = useState([]);
   const [quantities, setQuantities] = useState({});
   const [addedItems, setAddedItems] = useState({});
@@ -20,14 +20,29 @@ const Tuckshop = () => {
   useEffect(() => {
     const fetchItems = async () => {
       const itemsCollection = collection(db, "items");
-      const itemsSnapshot = await getDocs(itemsCollection);
-      const itemsList = itemsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const snapshot = await getDocs(itemsCollection);
+      const itemsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setItems(itemsList);
       setSortedItems(itemsList);
     };
 
     fetchItems();
   }, []);
+
+  useEffect(() => {
+    setItems(prevItems => 
+      prevItems.map(item => ({
+        ...item,
+        stock: stockUpdates[item.id] !== undefined ? stockUpdates[item.id] : item.stock
+      }))
+    );
+    setSortedItems(prevItems => 
+      prevItems.map(item => ({
+        ...item,
+        stock: stockUpdates[item.id] !== undefined ? stockUpdates[item.id] : item.stock
+      }))
+    );
+  }, [stockUpdates]);
 
   useEffect(() => {
     const cartQuantities = cart.reduce((acc, item) => {
@@ -38,37 +53,38 @@ const Tuckshop = () => {
     setAddedItems(cartQuantities);
   }, [cart]);
 
-  const handleAddToCart = (item) => {
+  const handleAddToCart = async (item) => {
     const quantity = quantities[item.id] || 1;
     if (quantity > item.stock) {
       toast.error(`Only ${item.stock} items available in stock.`);
       return;
     }
     
-    addToCart({ ...item, quantity });
+    await addToCart({ ...item, quantity });
     setQuantities((prev) => ({ ...prev, [item.id]: quantity }));
     setAddedItems((prev) => ({ ...prev, [item.id]: true }));
   };
 
-  const handleIncreaseQuantity = (item) => {
+  const handleIncreaseQuantity = async (item) => {
     const newQuantity = (quantities[item.id] || 1) + 1;
     if (newQuantity > item.stock) {
       toast.error(`Only ${item.stock} items available in stock.`);
       return;
     }
 
+    await updateCartItemQuantity(item.id, newQuantity);
     setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
-    updateCartItemQuantity(item.id, newQuantity);
   };
 
-  const handleDecreaseQuantity = (item) => {
+  const handleDecreaseQuantity = async (item) => {
     const currentQuantity = quantities[item.id] || 1;
     const newQuantity = currentQuantity - 1;
 
     if (newQuantity > 0) {
+      await updateCartItemQuantity(item.id, newQuantity);
       setQuantities((prev) => ({ ...prev, [item.id]: newQuantity }));
-      updateCartItemQuantity(item.id, newQuantity);
     } else {
+      await updateCartItemQuantity(item.id, 0);
       setQuantities((prev) => {
         const { [item.id]: _, ...rest } = prev;
         return rest;
@@ -77,7 +93,6 @@ const Tuckshop = () => {
         const { [item.id]: _, ...rest } = prev;
         return rest;
       });
-      updateCartItemQuantity(item.id, 0);
     }
   };
 
