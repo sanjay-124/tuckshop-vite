@@ -35,15 +35,8 @@ export const UserProvider = ({ children }) => {
         setBalance(userData.balance || 0);
         setExpense(userData.transactionAmount || 0);
       } else {
-        // Create a new user document if it doesn't exist
-        const newUserData = {
-          balance: 800,
-          transactionAmount: 0
-        };
-        await setDoc(userRef, newUserData);
-        setBalance(0);
-        setExpense(0);
-        console.log("New user document created");
+        console.log("User document does not exist");
+        // We won't create a new document here, as it should have been created during signup
       }
     } catch (error) {
       console.error("Error updating user data:", error);

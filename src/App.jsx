@@ -12,7 +12,7 @@ import {
 } from "firebase/auth";
 import { doc, setDoc, getFirestore } from "firebase/firestore";
 
-const boarderEmails = ["akshashidhar@cisb.org.in", "mrsanjay2709@gmail.com", "saketgupta.rkl@gmail.com"];
+const boarderEmails = ["akshashidhar@cisb.org.in", "mrsanjay2709@gmail.com", "saketgupta.rkl@gmail.com", "sanjay@cisb.org.in"];
 
 function App() {
   const { user, loading } = useUser();
@@ -40,17 +40,25 @@ function App() {
     }
     setLoadingMessage("Creating account...");
     try {
+      // Create user with email and password
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+
+      // Update the user's profile with the display name
       await updateProfile(user, { displayName: name });
+
+      // Create user data document in Firestore using email as the document ID
       const userData = {
         name: name,
-        balance: 800,
+        email: email,
+        balance: 1000,
         transactionAmount: 0,
         orders: []
       };
       const firestore = getFirestore();
-      await setDoc(doc(firestore, "users", user.uid), userData);
+      await setDoc(doc(firestore, "users", email), userData);
+
+      // Reset form fields and close the form
       setEmail("");
       setPassword("");
       setConfirmPassword("");
