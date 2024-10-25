@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { db } from "./fireconfig";
-import { updateDoc, doc, getDoc, runTransaction } from "firebase/firestore";
+import { updateDoc, doc, getDoc, onSnapshot } from "firebase/firestore";
 import io from 'socket.io-client';
 
 const CART_STORAGE_KEY = "cart";
-const WEBSOCKET_URL = 'https://tuckshop-vite.vercel.app'; // Update this to your WebSocket server URL
+const WEBSOCKET_URL = 'https://tuckshop-vite.vercel.app'; // Using HTTPS
 
 const CartContext = createContext();
 
@@ -19,15 +19,27 @@ export const CartProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    const newSocket = io(WEBSOCKET_URL);
+    const newSocket = io(WEBSOCKET_URL, { secure: true });
     setSocket(newSocket);
 
     newSocket.on('stockUpdate', (data) => {
       setStockUpdates(prev => ({ ...prev, [data.itemId]: data.newStock }));
     });
 
-    return () => newSocket.close();
-  }, []);
+    // Set up real-time listeners for all items in the cart
+    const unsubscribes = cart.map(item => 
+      onSnapshot(doc(db, "items", item.id), (doc) => {
+        if (doc.exists()) {
+          setStockUpdates(prev => ({ ...prev, [item.id]: doc.data().stock }));
+        }
+      })
+    );
+
+    return () => {
+      newSocket.close();
+      unsubscribes.forEach(unsubscribe => unsubscribe());
+    };
+  }, [cart]);
 
   useEffect(() => {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
@@ -35,25 +47,24 @@ export const CartProvider = ({ children }) => {
 
   const updateItemStock = async (itemId, quantityChange) => {
     try {
-      await runTransaction(db, async (transaction) => {
-        const itemRef = doc(db, "items", itemId);
-        const itemDoc = await transaction.get(itemRef);
-        
-        if (!itemDoc.exists()) {
-          throw "Item does not exist!";
-        }
+      const itemRef = doc(db, "items", itemId);
+      const itemDoc = await getDoc(itemRef);
+      
+      if (!itemDoc.exists()) {
+        throw "Item does not exist!";
+      }
 
-        const newStock = itemDoc.data().stock - quantityChange;
-        
-        if (newStock < 0) {
-          throw "Not enough stock!";
-        }
+      const currentStock = itemDoc.data().stock;
+      const newStock = currentStock - quantityChange;
+      
+      if (newStock < 0) {
+        throw "Not enough stock!";
+      }
 
-        transaction.update(itemRef, { stock: newStock });
+      await updateDoc(itemRef, { stock: newStock });
 
-        // Emit stock update through WebSocket
-        socket.emit('stockUpdate', { itemId, newStock });
-      });
+      // Emit stock update through WebSocket
+      socket.emit('stockUpdate', { itemId, newStock });
 
       return true;
     } catch (error) {
