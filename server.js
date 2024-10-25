@@ -35,7 +35,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "https://tuckshop-vite.vercel.app", // Replace with your Vite dev server URL
+    origin: ["https://tuckshop-vite.vercel.app", "http://localhost:5173"],
     methods: ["GET", "POST"]
   }
 });
@@ -54,6 +54,9 @@ io.on('connection', (socket) => {
           io.emit('itemUpdated', { id, ...item });
         });
       }
+    }).catch(error => {
+      console.error('Error fetching items:', error);
+      socket.emit('error', 'Failed to fetch items');
     });
   });
 
@@ -62,7 +65,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
