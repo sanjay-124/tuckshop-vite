@@ -10,7 +10,7 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore/lite";
+import { doc, setDoc, getFirestore } from "firebase/firestore";
 
 const boarderEmails = ["akshashidhar@cisb.org.in", "mrsanjay2709@gmail.com", "saketgupta.rkl@gmail.com"];
 
@@ -49,7 +49,8 @@ function App() {
         transactionAmount: 0,
         orders: []
       };
-      await setDoc(doc(db, "users", email), userData);
+      const firestore = getFirestore();
+      await setDoc(doc(firestore, "users", user.uid), userData);
       setEmail("");
       setPassword("");
       setConfirmPassword("");

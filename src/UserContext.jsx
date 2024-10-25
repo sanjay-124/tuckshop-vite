@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { db } from './fireconfig';
-import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc, setDoc } from 'firebase/firestore';
 
 const UserContext = createContext();
 
@@ -35,8 +35,15 @@ export const UserProvider = ({ children }) => {
         setBalance(userData.balance || 0);
         setExpense(userData.transactionAmount || 0);
       } else {
-        console.log("User document does not exist");
-        // You might want to create a user document here or handle this case appropriately
+        // Create a new user document if it doesn't exist
+        const newUserData = {
+          balance: 800,
+          transactionAmount: 0
+        };
+        await setDoc(userRef, newUserData);
+        setBalance(0);
+        setExpense(0);
+        console.log("New user document created");
       }
     } catch (error) {
       console.error("Error updating user data:", error);
@@ -67,8 +74,47 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  const placeOrder = async (orderAmount) => {
+    try {
+      if (user) {
+        const userRef = doc(db, "users", user.email);
+        const userDoc = await getDoc(userRef);
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const currentBalance = userData.balance || 0;
+          const currentTransactionAmount = userData.transactionAmount || 0;
+          
+          if (currentBalance >= orderAmount) {
+            const newBalance = currentBalance - orderAmount;
+            const newTransactionAmount = currentTransactionAmount + orderAmount;
+            
+            await updateDoc(userRef, { 
+              balance: newBalance,
+              transactionAmount: newTransactionAmount
+            });
+            
+            setBalance(newBalance);
+            setExpense(newTransactionAmount);
+            
+            return true; // Order placed successfully
+          } else {
+            console.log("Insufficient balance");
+            return false; // Insufficient balance
+          }
+        } else {
+          console.log("User document does not exist");
+          return false; // User document doesn't exist
+        }
+      }
+    } catch (error) {
+      console.error("Error placing order:", error);
+      return false; // Error occurred
+    }
+  };
+
   return (
-    <UserContext.Provider value={{ user, setUser, balance, expense, updateBalance, logout, updateUserData }}>
+    <UserContext.Provider value={{ user, setUser, balance, expense, updateBalance, logout, updateUserData, placeOrder }}>
       {children}
     </UserContext.Provider>
   );
