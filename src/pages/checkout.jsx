@@ -5,11 +5,11 @@ import { doc, updateDoc, arrayUnion, collection, addDoc, getDoc, increment, runT
 import { useUser } from "../UserContext";
 import { useCart } from "../CartContext";
 import { ToastContainer, toast } from "react-toastify";
-import { FaArrowLeft } from "react-icons/fa";
+import { FaArrowLeft, FaPlus, FaMinus, FaTrash } from "react-icons/fa";
 
 const Checkout = () => {
   const { user, updateUserData } = useUser();
-  const { cart, clearCart } = useCart();
+  const { cart, clearCart, updateCart } = useCart();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
@@ -173,6 +173,22 @@ const Checkout = () => {
     return null;
   };
 
+  const handleQuantityChange = (itemId, change) => {
+    const updatedCart = cart.map(item => {
+      if (item.id === itemId) {
+        const newQuantity = Math.max(0, item.quantity + change);
+        return { ...item, quantity: newQuantity };
+      }
+      return item;
+    });
+    updateCart(updatedCart);
+  };
+
+  const handleDeleteItem = (itemId) => {
+    const updatedCart = cart.filter(item => item.id !== itemId);
+    updateCart(updatedCart);
+  };
+
   return (
     <div className="p-4">
       <ToastContainer
@@ -201,7 +217,28 @@ const Checkout = () => {
               {cart.map((item) => (
                 <li key={item.id} className="border-b p-4 mb-2 flex justify-between items-center">
                   <span>{item.name}</span>
-                  <span>{item.quantity} x {item.price} = {item.quantity * item.price}</span>
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => handleQuantityChange(item.id, -1)}
+                      className="bg-gray-200 rounded-full p-1 mr-2"
+                    >
+                      <FaMinus className="text-gray-600" />
+                    </button>
+                    <span className="mx-2">{item.quantity}</span>
+                    <button
+                      onClick={() => handleQuantityChange(item.id, 1)}
+                      className="bg-gray-200 rounded-full p-1 ml-2"
+                    >
+                      <FaPlus className="text-gray-600" />
+                    </button>
+                    <span className="mx-4">x {item.price} = {item.quantity * item.price}</span>
+                    <button
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="bg-red-500 text-white rounded-full p-1 ml-2"
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
