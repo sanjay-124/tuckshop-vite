@@ -126,11 +126,6 @@ const Checkout = () => {
           console.log(`Item: ${itemData.name}`);
           console.log(`Selling Price: ${itemData.price}`);
           console.log(`Cost Price: ${itemData.costPrice}`);
-          console.log(`Quantity Sold in this order: ${cartItem.quantity}`);
-          console.log(`Total Stock Sold: ${newStockSold}`);
-          console.log(`Profit Per Item: ${profitPerItem}`);
-          console.log(`Total Profit: ${newProfit}`);
-          console.log('-------------------');
         });
 
         if (missingCostPriceItems.length > 0) {
