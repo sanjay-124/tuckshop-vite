@@ -35,7 +35,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["https://tuckshop-vite.vercel.app", "http://localhost:5173"],
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
@@ -65,7 +65,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 5173;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
