@@ -13,6 +13,7 @@
     "@fontsource/dancing-script": "^5.1.0",
     "@fontsource/montserrat": "^5.1.0",
     "@fontsource/poppins": "^5.1.0",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "firebase": "^10.12.5",
     "firebase-admin": "^12.3.0",

@@ -3,27 +3,32 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import admin from 'firebase-admin';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import fs from 'fs/promises';
+import { dirname } from 'path';
+import dotenv from 'dotenv';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Update this path to where you actually stored your serviceAccountKey.json
-const serviceAccountPath = join(__dirname, 'config', 'serviceAccountKey.json');
+// Load environment variables
+dotenv.config();
 
-let serviceAccount;
-try {
-  const serviceAccountFile = await fs.readFile(serviceAccountPath, 'utf8');
-  serviceAccount = JSON.parse(serviceAccountFile);
-} catch (error) {
-  console.error('Error reading service account file:', error);
-  process.exit(1);
-}
+// Use environment variables for Firebase configuration
+const firebaseConfig = {
+  type: process.env.FIREBASE_TYPE,
+  project_id: process.env.FIREBASE_PROJECT_ID,
+  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+  private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  client_email: process.env.FIREBASE_CLIENT_EMAIL,
+  client_id: process.env.FIREBASE_CLIENT_ID,
+  auth_uri: process.env.FIREBASE_AUTH_URI,
+  token_uri: process.env.FIREBASE_TOKEN_URI,
+  auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
+  client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL
+};
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://tuckshop-2024-default-rtdb.firebaseio.com" // This URL can be found in your Firebase project settings
+  credential: admin.credential.cert(firebaseConfig),
+  databaseURL: process.env.FIREBASE_DATABASE_URL
 });
 
 const app = express();
