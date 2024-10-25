@@ -73,11 +73,10 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const addToCart = async (item) => {
+  const addToCart = async (item, quantityToAdd) => {
     const currentCartItem = cart.find(cartItem => cartItem.id === item.id);
     const currentQuantity = currentCartItem ? currentCartItem.quantity : 0;
-    const quantityToAdd = item.quantity - currentQuantity;
-
+    
     if (quantityToAdd > 0) {
       const success = await updateItemStock(item.id, quantityToAdd);
       if (success) {
@@ -85,10 +84,13 @@ export const CartProvider = ({ children }) => {
           const existingItemIndex = prevCart.findIndex((cartItem) => cartItem.id === item.id);
           if (existingItemIndex !== -1) {
             const updatedCart = [...prevCart];
-            updatedCart[existingItemIndex] = { ...updatedCart[existingItemIndex], quantity: item.quantity };
+            updatedCart[existingItemIndex] = { 
+              ...updatedCart[existingItemIndex], 
+              quantity: currentQuantity + quantityToAdd 
+            };
             return updatedCart;
           } else {
-            return [...prevCart, { ...item }];
+            return [...prevCart, { ...item, quantity: quantityToAdd }];
           }
         });
       } else {
