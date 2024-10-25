@@ -4,7 +4,7 @@ import { updateDoc, doc, getDoc, runTransaction } from "firebase/firestore";
 import io from 'socket.io-client';
 
 const CART_STORAGE_KEY = "cart";
-const WEBSOCKET_URL = 'http://localhost:5173'; // Update this to your WebSocket server URL
+const WEBSOCKET_URL = 'http://tuckshop-vite.vercel.app'; // Update this to your WebSocket server URL
 
 const CartContext = createContext();
 
