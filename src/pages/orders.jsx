@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../fireconfig";
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore/lite";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { useUser } from "../UserContext";
 import Header from "../components/Header.jsx";
 
